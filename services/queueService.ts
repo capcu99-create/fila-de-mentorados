@@ -1,5 +1,6 @@
 import { initializeApp } from 'firebase/app';
 import { getDatabase, ref, onValue, push, update, set, remove } from 'firebase/database';
+import { getAuth, signInAnonymously, signInWithEmailAndPassword, signOut, onAuthStateChanged, User } from 'firebase/auth';
 import { firebaseConfig, isFirebaseConfigured } from '../firebaseConfig';
 import { Ticket } from '../types';
 
@@ -7,14 +8,30 @@ import { Ticket } from '../types';
 let db: any = null;
 let ticketsRef: any = null;
 let statusRef: any = null;
+let auth: any = null;
 
 if (isFirebaseConfigured()) {
   try {
     const app = initializeApp(firebaseConfig);
+    auth = getAuth(app);
     db = getDatabase(app);
     ticketsRef = ref(db, 'tickets');
     statusRef = ref(db, 'systemStatus/mentorOnline');
-    console.log("Firebase conectado com sucesso.");
+
+    // Monitoramento de Auth
+    // Se não houver usuário logado, loga como Anônimo automaticamente (Aluno)
+    onAuthStateChanged(auth, (user) => {
+      if (!user) {
+        console.log("Nenhum usuário detectado. Entrando como Anônimo...");
+        signInAnonymously(auth).catch((error) => {
+          console.error("Erro na autenticação anônima:", error);
+        });
+      } else {
+        console.log(`Usuário conectado: ${user.email || 'Anônimo'} (${user.uid})`);
+      }
+    });
+
+    console.log("Firebase conectado.");
   } catch (e) {
     console.error("Erro ao conectar Firebase:", e);
   }
@@ -24,6 +41,30 @@ if (isFirebaseConfigured()) {
 
 export const queueService = {
   isSystemOnline: () => isFirebaseConfigured(),
+
+  // --- AUTHENTICATION ---
+  
+  loginAdmin: async (email: string, pass: string) => {
+    if (isFirebaseConfigured() && auth) {
+      await signInWithEmailAndPassword(auth, email, pass);
+    } else {
+      throw new Error("Firebase não configurado.");
+    }
+  },
+
+  logoutAdmin: async () => {
+    if (isFirebaseConfigured() && auth) {
+      await signOut(auth);
+      // O onAuthStateChanged vai rodar e logar como anônimo automaticamente
+    }
+  },
+
+  subscribeToAuth: (callback: (user: User | null) => void) => {
+    if (isFirebaseConfigured() && auth) {
+      return onAuthStateChanged(auth, callback);
+    }
+    return () => {};
+  },
 
   // --- TICKETS ---
 

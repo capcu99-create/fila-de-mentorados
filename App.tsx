@@ -9,11 +9,9 @@ import { queueService } from './services/queueService';
 
 // ============================================================================
 // 📸 ÁREA DA FOTO
-// Cole o link da sua foto abaixo (entre as aspas).
-// Se estiver rodando local, pode ser um caminho relativo. Se online, use um link (Imgur, etc).
+// Cole o link da sua foto abaixo.
 // ============================================================================
 const MUZEIRA_PHOTO_URL = "https://i.imgur.com/h32KOQd.jpeg"; 
-// 👆 TROQUE O LINK ACIMA PELO LINK DA SUA FOTO!
 
 const App: React.FC = () => {
   // UI State
@@ -24,7 +22,7 @@ const App: React.FC = () => {
   const [role, setRole] = useState<UserRole>(UserRole.STUDENT);
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [isSystemOnline, setIsSystemOnline] = useState(false);
-  const [mentorAvailable, setMentorAvailable] = useState(false); // O verdinho
+  const [mentorAvailable, setMentorAvailable] = useState(false);
   
   // Auth State
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false);
@@ -35,35 +33,49 @@ const App: React.FC = () => {
     // Verifica se o firebase está configurado
     setIsSystemOnline(queueService.isSystemOnline());
 
-    // Inscreve nos Tickets com tratamento de erro
+    // Monitora Auth Real do Firebase
+    const unsubscribeAuth = queueService.subscribeToAuth((user) => {
+      if (user && !user.isAnonymous) {
+        // Se tem usuário e NÃO é anônimo, é o Mentor (Admin)
+        setIsAdminAuthenticated(true);
+        setRole(UserRole.MENTOR);
+      } else {
+        // Se é anônimo ou null, é aluno
+        setIsAdminAuthenticated(false);
+        if (role === UserRole.MENTOR) {
+          setRole(UserRole.STUDENT);
+        }
+      }
+    });
+
+    // Inscreve nos Tickets
     const unsubscribeTickets = queueService.subscribe(
       (updatedTickets) => {
         setTickets(updatedTickets);
-        setErrorMessage(null); // Limpa erro se tiver sucesso
+        setErrorMessage(null);
       },
       (error) => {
         console.error("App: Erro ao carregar tickets", error);
         if (error.message.includes("permission_denied")) {
-          setErrorMessage("ERRO DE PERMISSÃO: O banco de dados está bloqueado. Configure as regras do Firebase para 'read: true, write: true'.");
+          setErrorMessage("ACESSO NEGADO: Você precisa estar logado ou as regras do banco bloqueiam a leitura.");
         } else {
-          setErrorMessage(`Erro de conexão com Firebase: ${error.message}`);
+          setErrorMessage(`Erro de conexão: ${error.message}`);
         }
       }
     );
 
-    // Inscreve no Status do Mentor (O verdinho)
+    // Inscreve no Status do Mentor
     const unsubscribeStatus = queueService.subscribeToMentorStatus((status) => {
       setMentorAvailable(status);
     });
 
-    // Listeners para modo offline (Local Storage)
+    // Listeners Offline
     const handleLocalUpdate = () => {
       if (!queueService.isSystemOnline()) {
          const saved = localStorage.getItem('muzeira-tickets');
          if (saved) setTickets(JSON.parse(saved));
       }
     };
-    
     const handleLocalStatusUpdate = () => {
        if (!queueService.isSystemOnline()) {
          const saved = localStorage.getItem('muzeira-mentor-status');
@@ -74,19 +86,14 @@ const App: React.FC = () => {
     window.addEventListener('local-storage-update', handleLocalUpdate);
     window.addEventListener('local-status-update', handleLocalStatusUpdate);
     
-    // Persistence Auth
-    const savedAuth = sessionStorage.getItem('muzeira-auth');
-    if (savedAuth === 'true') {
-      setIsAdminAuthenticated(true);
-    }
-    
     return () => {
       if (typeof unsubscribeTickets === 'function') unsubscribeTickets();
       if (typeof unsubscribeStatus === 'function') unsubscribeStatus();
+      if (typeof unsubscribeAuth === 'function') unsubscribeAuth();
       window.removeEventListener('local-storage-update', handleLocalUpdate);
       window.removeEventListener('local-status-update', handleLocalStatusUpdate);
     };
-  }, []);
+  }, [role]);
 
   const handleEnterSystem = () => {
     setHasEntered(true);
@@ -94,7 +101,6 @@ const App: React.FC = () => {
 
   const handleCreateTicket = useCallback(async (name: string, reason: string, availability: string) => {
     try {
-      // Fallback seguro para UUID em navegadores antigos
       const tempId = typeof crypto.randomUUID === 'function' 
         ? crypto.randomUUID() 
         : Math.random().toString(36).substring(2) + Date.now().toString(36);
@@ -110,7 +116,11 @@ const App: React.FC = () => {
 
       await queueService.addTicket(newTicket);
     } catch (error: any) {
-      alert("Erro ao criar ticket: " + error.message + "\n\nVerifique se as regras do Firebase permitem escrita.");
+      if (error.message.includes("PERMISSION_DENIED")) {
+        alert("Erro de Permissão: O banco de dados não permitiu criar o ticket. Verifique as Regras do Firebase.");
+      } else {
+        alert("Erro ao criar ticket: " + error.message);
+      }
     }
   }, []);
 
@@ -118,7 +128,7 @@ const App: React.FC = () => {
     try {
       await queueService.updateTicket(id, { status });
     } catch (error: any) {
-      alert("Erro ao atualizar status: " + error.message);
+      alert("Erro ao atualizar status (apenas Admin pode fazer isso): " + error.message);
     }
   };
 
@@ -142,17 +152,24 @@ const App: React.FC = () => {
     }
   };
 
-  const handleLogin = (user: string, pass: string): boolean => {
-    if (user.toLowerCase() === 'muzeira' && pass === 'Mumu@2025') {
-      setIsAdminAuthenticated(true);
-      sessionStorage.setItem('muzeira-auth', 'true');
-      setRole(UserRole.MENTOR);
+  const handleLogin = async (email: string, pass: string): Promise<boolean> => {
+    try {
+      await queueService.loginAdmin(email, pass);
       return true;
+    } catch (e) {
+      throw e;
     }
-    return false;
   };
 
-  // Toggle Status (Verdinho)
+  const handleLogout = async () => {
+    try {
+      await queueService.logoutAdmin();
+      // O estado será atualizado automaticamente pelo listener unsubscribeAuth
+    } catch (e) {
+      console.error("Erro ao sair", e);
+    }
+  };
+
   const toggleMentorAvailability = async () => {
     try {
       await queueService.setMentorStatus(!mentorAvailable);
@@ -161,12 +178,10 @@ const App: React.FC = () => {
     }
   };
 
-  // 1. Renderizar Landing Page se ainda não entrou
   if (!hasEntered) {
     return <LandingPage onEnter={handleEnterSystem} avatarUrl={MUZEIRA_PHOTO_URL} />;
   }
 
-  // 2. Renderizar Sistema Principal
   const pendingTickets = tickets.filter(t => t.status === TicketStatus.PENDING);
   const historyTickets = tickets.filter(t => t.status !== TicketStatus.PENDING);
 
@@ -182,13 +197,13 @@ const App: React.FC = () => {
         role={role} 
         isAuthenticated={isAdminAuthenticated}
         onToggleRole={handleToggleRole} 
-        isOnline={mentorAvailable} // Agora controlado pelo botão do mentor
+        isOnline={mentorAvailable}
         avatarUrl={MUZEIRA_PHOTO_URL}
       />
       
       {!isSystemOnline && !errorMessage && (
         <div className="bg-amber-500/10 border-b border-amber-500/20 text-amber-400 text-center py-2 text-xs font-medium">
-          ⚠️ Modo Local (Offline). Configure o <code>firebaseConfig.ts</code> para sincronizar dados.
+          ⚠️ Modo Local (Offline).
         </div>
       )}
 
@@ -199,7 +214,6 @@ const App: React.FC = () => {
       />
 
       <main className="max-w-5xl mx-auto px-4 pt-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Coluna Esquerda: Formulário ou Painel */}
         <div className="lg:col-span-1 space-y-6">
           {role === UserRole.STUDENT ? (
             <RequestForm onSubmit={handleCreateTicket} />
@@ -211,7 +225,6 @@ const App: React.FC = () => {
                   Painel do Mentor
                 </h2>
                 
-                {/* CONTROLE DE STATUS DO MENTOR */}
                 <button 
                   onClick={toggleMentorAvailability}
                   className={`w-full py-3 px-4 rounded-xl font-semibold transition-all flex items-center justify-center gap-2 border mb-2 ${
@@ -226,18 +239,15 @@ const App: React.FC = () => {
                         <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
                         <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
                       </span>
-                      Você está ONLINE
+                      ONLINE
                     </>
                   ) : (
                     <>
                       <span className="h-3 w-3 bg-slate-500 rounded-full"></span>
-                      Você está OFFLINE
+                      OFFLINE
                     </>
                   )}
                 </button>
-                <p className="text-xs text-slate-500 text-center">
-                  Isso controla o indicador verde no topo da página.
-                </p>
               </div>
 
               <div className="space-y-4 pt-4 border-t border-slate-700/50">
@@ -254,14 +264,10 @@ const App: React.FC = () => {
               </div>
 
               <button 
-                onClick={() => {
-                   setIsAdminAuthenticated(false);
-                   sessionStorage.removeItem('muzeira-auth');
-                   setRole(UserRole.STUDENT);
-                }}
+                onClick={handleLogout}
                 className="w-full mt-2 py-2 px-4 border border-red-500/30 text-red-400 hover:bg-red-500/10 rounded-lg text-sm transition-colors"
               >
-                Sair do Modo Admin
+                Sair (Logout)
               </button>
             </div>
           )}
@@ -269,12 +275,11 @@ const App: React.FC = () => {
           <div className="hidden lg:block bg-indigo-900/20 rounded-2xl p-6 border border-indigo-500/20">
              <h3 className="text-indigo-300 font-semibold mb-2">Dica do Muzeira</h3>
              <p className="text-indigo-200/70 text-sm">
-               Antes de entrar na fila, verifique se já não existe solução na documentação ou no Stack Overflow.
+               Verifique as regras de segurança no Console do Firebase se tiver problemas de permissão.
              </p>
           </div>
         </div>
 
-        {/* Coluna Direita: Fila */}
         <div className="lg:col-span-2 space-y-6">
           <div>
             <h2 className="text-xl font-bold text-white mb-4 flex items-center justify-between">
