@@ -17,7 +17,8 @@ if (isFirebaseConfigured()) {
     auth = getAuth(app);
     db = getDatabase(app);
     ticketsRef = ref(db, 'tickets');
-    statusRef = ref(db, 'systemStatus/mentorOnline');
+    // Mudança para estrutura de objeto para suportar múltiplos mentores
+    statusRef = ref(db, 'systemStatus/mentors');
 
     // Monitoramento de Auth
     onAuthStateChanged(auth, (user) => {
@@ -46,7 +47,11 @@ export const queueService = {
   
   loginAdmin: async (username: string, pass: string) => {
     if (isFirebaseConfigured() && auth) {
-      const email = username.includes('@') ? username : `${username}@mentor.com`;
+      // Se o usuário digitar só "muzeira" ou "kayo", completa com @mentor.com
+      let email = username;
+      if (!email.includes('@')) {
+        email = `${username}@mentor.com`;
+      }
       await signInWithEmailAndPassword(auth, email, pass);
     } else {
       throw new Error("Firebase não configurado.");
@@ -66,9 +71,12 @@ export const queueService = {
     return () => {};
   },
 
-  // Retorna o UID atual ou null
   getCurrentUserId: (): string | null => {
     return auth?.currentUser?.uid || null;
+  },
+
+  getCurrentUserEmail: (): string | null => {
+    return auth?.currentUser?.email || null;
   },
 
   // --- TICKETS ---
@@ -121,7 +129,6 @@ export const queueService = {
         const newTicketRef = push(ticketsRef);
         const newId = newTicketRef.key;
         
-        // Adiciona o createdBy com o UID do usuário atual (se existir)
         const ticketWithAuth = {
           ...ticket,
           id: newId,
@@ -178,7 +185,6 @@ export const queueService = {
 
           Object.keys(data).forEach((key) => {
             const ticket = data[key];
-            // Apaga se NÃO for PENDING (apaga Resolved e Discarded)
             if (ticket.status !== 'PENDING') {
               updates[`tickets/${key}`] = null;
               count++;
@@ -194,7 +200,6 @@ export const queueService = {
         throw error;
       }
     } else {
-      // Local Storage Fallback
       const saved = localStorage.getItem('muzeira-tickets');
       if (saved) {
         const tickets = JSON.parse(saved) as Ticket[];
@@ -205,35 +210,46 @@ export const queueService = {
     }
   },
 
-  // --- MENTOR STATUS ---
+  // --- MENTOR STATUS (MULTIPLOS MENTORES) ---
 
-  subscribeToMentorStatus: (callback: (isOnline: boolean) => void) => {
+  subscribeToMentorStatus: (callback: (statuses: { muzeira: boolean, kayo: boolean }) => void) => {
     if (isFirebaseConfigured() && statusRef) {
       const unsubscribe = onValue(statusRef, (snapshot) => {
         const val = snapshot.val();
-        callback(!!val);
+        if (val) {
+          callback({
+            muzeira: !!val.muzeira,
+            kayo: !!val.kayo
+          });
+        } else {
+          callback({ muzeira: false, kayo: false });
+        }
       });
       return unsubscribe;
     } else {
       const loadStatus = () => {
-        const saved = localStorage.getItem('muzeira-mentor-status');
-        callback(saved === 'true');
+        const m = localStorage.getItem('muzeira-status-muzeira') === 'true';
+        const k = localStorage.getItem('muzeira-status-kayo') === 'true';
+        callback({ muzeira: m, kayo: k });
       };
       loadStatus();
       return () => {};
     }
   },
 
-  setMentorStatus: async (isOnline: boolean) => {
-    if (isFirebaseConfigured() && statusRef) {
+  setMentorStatus: async (mentorId: 'muzeira' | 'kayo', isOnline: boolean) => {
+    if (isFirebaseConfigured() && db) {
       try {
-        await set(statusRef, isOnline);
+        // Atualiza apenas o nó do mentor específico
+        await update(ref(db, 'systemStatus/mentors'), {
+          [mentorId]: isOnline
+        });
       } catch (error) {
         console.error("Erro ao definir status do mentor:", error);
         throw error;
       }
     } else {
-      localStorage.setItem('muzeira-mentor-status', String(isOnline));
+      localStorage.setItem(`muzeira-status-${mentorId}`, String(isOnline));
       window.dispatchEvent(new Event('local-status-update'));
     }
   }

@@ -20,6 +20,7 @@ export interface Ticket {
   status: TicketStatus;
   createdAt: number;
   createdBy?: string; // ID do usuário que criou o ticket (Firebase UID)
+  resolvedBy?: string; // Nome do mentor que resolveu/descartou
   aiData?: AITags;
 }
 

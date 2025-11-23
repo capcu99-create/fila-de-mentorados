@@ -24,8 +24,6 @@ export const TicketCard: React.FC<TicketCardProps> = ({
   const isResolved = ticket.status === TicketStatus.RESOLVED;
   const isDiscarded = ticket.status === TicketStatus.DISCARDED;
   
-  // Verifica se o usuário atual é o dono do ticket
-  // Robust check: ensure strings exist and match
   const isOwner = !!(currentUserId && ticket.createdBy && ticket.createdBy === currentUserId);
 
   const handleSaveEdit = () => {
@@ -82,7 +80,7 @@ export const TicketCard: React.FC<TicketCardProps> = ({
             </div>
           )}
 
-          {/* Botões do ALUNO (Só aparece se for dono do ticket) */}
+          {/* Botões do ALUNO */}
           {role === UserRole.STUDENT && isPending && isOwner && (
             <div className="flex gap-2">
               <button
@@ -109,27 +107,40 @@ export const TicketCard: React.FC<TicketCardProps> = ({
             {ticket.reason}
           </p>
           
-          <div className="pt-2 border-t border-slate-700/50 mt-2">
-             <span className="text-slate-500 font-medium text-xs uppercase block mb-0.5">Disponibilidade</span>
-             {isEditing ? (
-               <div className="flex gap-2 mt-1">
-                  <input 
-                    type="text" 
-                    value={editAvailability} 
-                    onChange={(e) => setEditAvailability(e.target.value)}
-                    className="flex-1 bg-slate-900 border border-slate-600 rounded px-2 py-1 text-sm text-white focus:ring-1 focus:ring-indigo-500 outline-none"
-                  />
-                  <button 
-                    onClick={handleSaveEdit}
-                    className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs px-3 py-1 rounded transition-colors"
-                  >
-                    Salvar
-                  </button>
-               </div>
-             ) : (
-               <p className="text-indigo-300 text-sm font-medium">
-                 {ticket.availability}
-               </p>
+          <div className="pt-2 border-t border-slate-700/50 mt-2 flex flex-wrap justify-between items-end gap-2">
+             <div className="flex-1">
+               <span className="text-slate-500 font-medium text-xs uppercase block mb-0.5">Disponibilidade</span>
+               {isEditing ? (
+                 <div className="flex gap-2 mt-1">
+                    <input 
+                      type="text" 
+                      value={editAvailability} 
+                      onChange={(e) => setEditAvailability(e.target.value)}
+                      className="flex-1 bg-slate-900 border border-slate-600 rounded px-2 py-1 text-sm text-white focus:ring-1 focus:ring-indigo-500 outline-none"
+                    />
+                    <button 
+                      onClick={handleSaveEdit}
+                      className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs px-3 py-1 rounded transition-colors"
+                    >
+                      Salvar
+                    </button>
+                 </div>
+               ) : (
+                 <p className="text-indigo-300 text-sm font-medium">
+                   {ticket.availability}
+                 </p>
+               )}
+             </div>
+
+             {/* Attribution Badge */}
+             {ticket.resolvedBy && !isPending && (
+                <div className="text-right">
+                  <span className="text-[10px] text-slate-500 uppercase block">Atendido por</span>
+                  <div className="flex items-center gap-1.5 mt-0.5 bg-slate-700/50 px-2 py-1 rounded-full border border-slate-600/50">
+                     <div className={`w-1.5 h-1.5 rounded-full ${isResolved ? 'bg-green-400' : 'bg-red-400'}`}></div>
+                     <span className="text-xs font-semibold text-slate-300">{ticket.resolvedBy}</span>
+                  </div>
+                </div>
              )}
           </div>
         </div>
