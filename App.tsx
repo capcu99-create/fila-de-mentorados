@@ -42,6 +42,7 @@ const App: React.FC = () => {
   
   // Dev State
   const [devTelegramId, setDevTelegramId] = useState('');
+  const [showTelegramHelp, setShowTelegramHelp] = useState(false);
 
   // Refs para controle de notificação
   const prevPendingCountRef = useRef(0);
@@ -222,15 +223,15 @@ const App: React.FC = () => {
   const handleDevSave = async () => {
     try {
        await queueService.registerTelegramId(devTelegramId, "Dev Tester");
-       alert("ID Salvo!");
+       alert("✅ ID Salvo com sucesso!");
     } catch (e: any) { alert(e.message) }
   };
 
   const handleDevTest = async () => {
     try {
-      if(!devTelegramId) return alert("Preencha o ID primeiro!");
+      if(!devTelegramId) return alert("⚠️ Preencha o ID primeiro!");
       await queueService.sendTestNotification(devTelegramId);
-      alert("Comando enviado!\n\nSe não chegar:\n1. Verifique se mandou 'Oi' para o bot do sistema.\n2. Verifique se o ID está correto.");
+      alert("🚀 Comando enviado!\n\nSe não chegar em 5 segundos:\n1. Você esqueceu de dar 'Oi' pro seu Bot.\n2. O ID está errado.");
     } catch (e: any) { alert(e.message) }
   };
 
@@ -392,33 +393,68 @@ const App: React.FC = () => {
       </main>
 
       {/* RODAPÉ DE DESENVOLVEDOR (TESTE RÁPIDO) */}
-      <footer className="mt-12 py-6 border-t border-slate-800 bg-slate-900/50 backdrop-blur">
+      <footer className="mt-12 py-6 border-t border-slate-800 bg-slate-900/50 backdrop-blur relative">
+        {showTelegramHelp && (
+           <div className="absolute bottom-full left-0 w-full bg-slate-900 border-t border-indigo-500/30 p-4 shadow-2xl animate-in slide-in-from-bottom-5">
+              <div className="max-w-5xl mx-auto flex flex-col md:flex-row gap-6">
+                <div className="flex-1">
+                   <h3 className="text-indigo-400 font-bold mb-2 flex items-center gap-2">
+                     <span className="bg-indigo-500 text-white w-5 h-5 rounded-full flex items-center justify-center text-xs">1</span>
+                     Falar com o Bot
+                   </h3>
+                   <p className="text-slate-400 text-xs">Abra o seu Bot no Telegram (o que você criou com o Token) e clique em <strong>Começar (Start)</strong> ou mande um "Oi".</p>
+                </div>
+                <div className="flex-1">
+                   <h3 className="text-indigo-400 font-bold mb-2 flex items-center gap-2">
+                     <span className="bg-indigo-500 text-white w-5 h-5 rounded-full flex items-center justify-center text-xs">2</span>
+                     Pegar seu ID
+                   </h3>
+                   <p className="text-slate-400 text-xs">Mande uma mensagem para o bot <a href="https://t.me/userinfobot" target="_blank" className="text-white underline">@userinfobot</a>. Ele vai responder com um número (ex: 1293012).</p>
+                </div>
+                <div className="flex-1">
+                   <h3 className="text-indigo-400 font-bold mb-2 flex items-center gap-2">
+                     <span className="bg-indigo-500 text-white w-5 h-5 rounded-full flex items-center justify-center text-xs">3</span>
+                     Salvar e Testar
+                   </h3>
+                   <p className="text-slate-400 text-xs">Copie o número, cole no campo abaixo e clique em Salvar. Depois clique em Testar.</p>
+                </div>
+                <button onClick={() => setShowTelegramHelp(false)} className="text-slate-500 hover:text-white self-start">✖</button>
+              </div>
+           </div>
+        )}
+
         <div className="max-w-5xl mx-auto px-4 flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-slate-500">
-           <div>&copy; 2024 Mentoria do Muzeira - Sistema de Filas v1.1</div>
+           <div className="flex items-center gap-2">
+             <span>&copy; 2024 Mentoria do Muzeira v1.1</span>
+             <span className="hidden md:inline text-slate-700">|</span>
+             <span className="hidden md:inline">Sistema de Filas</span>
+           </div>
            
-           <div className="flex items-center gap-2 p-2 bg-slate-800 rounded-lg border border-slate-700">
-             <span className="font-bold text-indigo-400">DEV TELEGRAM:</span>
-             <a href="https://t.me/userinfobot" target="_blank" rel="noopener noreferrer" className="text-[10px] text-indigo-400 hover:underline border border-indigo-500/30 px-1 rounded">
-                (Pegar ID)
-             </a>
+           <div className="flex items-center gap-2 p-2 bg-slate-800 rounded-lg border border-slate-700 shadow-lg">
+             <button 
+               onClick={() => setShowTelegramHelp(!showTelegramHelp)}
+               className="bg-indigo-500/20 text-indigo-400 hover:bg-indigo-500 hover:text-white w-6 h-6 rounded flex items-center justify-center transition-colors font-bold"
+               title="Como configurar?"
+             >
+               ?
+             </button>
+             <span className="font-bold text-slate-300">TELEGRAM CONFIG:</span>
              <input 
                type="text" 
-               placeholder="Cole seu ID aqui" 
-               className="bg-slate-900 border border-slate-600 rounded px-2 py-1 text-slate-300 w-32 focus:outline-none focus:border-indigo-500"
+               placeholder="Seu ID (Ex: 123456)" 
+               className="bg-slate-900 border border-slate-600 rounded px-2 py-1 text-slate-300 w-32 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
                value={devTelegramId}
                onChange={(e) => setDevTelegramId(e.target.value)}
              />
              <button 
                onClick={handleDevSave}
-               className="px-2 py-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded transition-colors"
-               title="Salvar ID no Banco"
+               className="px-3 py-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded transition-colors font-medium"
              >
                Salvar
              </button>
              <button 
                onClick={handleDevTest}
-               className="px-2 py-1 bg-green-600 hover:bg-green-700 text-white rounded transition-colors"
-               title="Enviar mensagem de teste"
+               className="px-3 py-1 bg-green-600 hover:bg-green-700 text-white rounded transition-colors font-medium flex items-center gap-1"
              >
                Testar
              </button>
