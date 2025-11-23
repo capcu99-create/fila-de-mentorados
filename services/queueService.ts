@@ -1,4 +1,3 @@
-
 import { initializeApp } from 'firebase/app';
 import { getDatabase, ref, onValue, push, set, update, remove, get } from 'firebase/database';
 import { getAuth, signInAnonymously, signInWithEmailAndPassword, signOut, onAuthStateChanged, User } from 'firebase/auth';
@@ -40,18 +39,12 @@ _Corre lá pra atender!_ 🚀
     // Envia para todos os IDs encontrados
     for (const chatId of chatIds) {
       try {
-        // OBS: mode 'no-cors' permite enviar a requisição sem o navegador bloquear, 
-        // mas não permite ler a resposta (dará erro 0/opaque, mas o Telegram recebe).
-        const url = `https://api.telegram.org/bot${TELEGRAM_CONFIG.BOT_TOKEN}/sendMessage`;
+        // MUDANÇA: Usando GET com Query Params para garantir que o Telegram aceite a requisição vinda do navegador
+        const url = `https://api.telegram.org/bot${TELEGRAM_CONFIG.BOT_TOKEN}/sendMessage?chat_id=${chatId}&text=${encodeURIComponent(message)}&parse_mode=Markdown`;
+        
         await fetch(url, {
-          method: 'POST',
-          mode: 'no-cors', 
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            chat_id: chatId,
-            text: message,
-            parse_mode: 'Markdown'
-          })
+          method: 'GET',
+          mode: 'no-cors'
         });
         console.log(`Tentativa de envio para ${chatId} realizada.`);
       } catch (error) {
@@ -103,11 +96,9 @@ export const queueService = {
     const cleanId = chatId.trim().replace(/\s/g, '');
     if (!/^-?\d+$/.test(cleanId)) throw new Error("ID inválido. Deve conter apenas números.");
 
-    await update(ref(db, `systemStatus/telegramIds`), {
-      [cleanId]: { 
-        name: name, 
-        connectedAt: Date.now() 
-      }
+    await update(ref(db, `systemStatus/telegramIds/${cleanId}`), {
+      name: name, 
+      connectedAt: Date.now() 
     });
   },
 
@@ -116,18 +107,13 @@ export const queueService = {
      const cleanId = chatId.trim();
      if (!cleanId) throw new Error("ID vazio.");
 
-     const url = `https://api.telegram.org/bot${TELEGRAM_CONFIG.BOT_TOKEN}/sendMessage`;
+     const text = "✅ *TESTE DE NOTIFICAÇÃO*\n\nSe você recebeu isso, o sistema está funcionando!\n\n_Mentoria do Muzeira_";
+     const url = `https://api.telegram.org/bot${TELEGRAM_CONFIG.BOT_TOKEN}/sendMessage?chat_id=${cleanId}&text=${encodeURIComponent(text)}&parse_mode=Markdown`;
      
-     // Usamos no-cors para evitar bloqueio do navegador
+     // Usamos no-cors para evitar bloqueio do navegador, mas agora via GET
      await fetch(url, {
-        method: 'POST',
-        mode: 'no-cors',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          chat_id: cleanId,
-          text: "✅ *TESTE DE NOTIFICAÇÃO*\n\nSe você recebeu isso, o sistema está funcionando!\n\n_Mentoria do Muzeira_",
-          parse_mode: 'Markdown'
-        })
+        method: 'GET',
+        mode: 'no-cors'
       });
   },
 
