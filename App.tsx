@@ -48,7 +48,7 @@ const App: React.FC = () => {
   // PRE-FILLED credentials from user request
   const [emailConfig, setEmailConfig] = useState({ 
     serviceId: 'service_83s9pm8', 
-    templateId: 'template_1s8tsxl', 
+    templateId: 'template_xlweuw8', 
     publicKey: 'crnFjILfhuTgiRywS' 
   });
 
@@ -85,7 +85,7 @@ const App: React.FC = () => {
         // Mantém os IDs padrão se o salvo estiver vazio
         setEmailConfig({
           serviceId: parsed.serviceId || 'service_83s9pm8',
-          templateId: parsed.templateId || 'template_1s8tsxl',
+          templateId: parsed.templateId || 'template_xlweuw8',
           publicKey: parsed.publicKey || 'crnFjILfhuTgiRywS'
         });
       }
