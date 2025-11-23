@@ -1,7 +1,7 @@
 
 import { initializeApp } from 'firebase/app';
 import { getDatabase, ref, onValue, push, set, update, remove, get } from 'firebase/database';
-import { getAuth, signInAnonymously, signInWithEmailAndPassword, signOut, onAuthStateChanged, User } from 'firebase/auth';
+import { getAuth, signInAnonymously, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged, User } from 'firebase/auth';
 import { firebaseConfig, isFirebaseConfigured } from '../firebaseConfig';
 import { Ticket } from '../types';
 
@@ -167,7 +167,31 @@ export const queueService = {
          else if (username.toLowerCase().includes('kayo') || username.toLowerCase().includes('tocha')) email = 'kayoprimo77@gmail.com';
          else email = `${username}@mentor.com`;
       }
-      await signInWithEmailAndPassword(auth, email, pass);
+      
+      try {
+        await signInWithEmailAndPassword(auth, email, pass);
+      } catch (error: any) {
+        // Se o usuário não existir (user-not-found) ou credencial inválida (novo SDK), tenta criar
+        if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential' || error.code === 'auth/invalid-login-credentials') {
+           try {
+             // Tenta criar a conta automaticamente
+             await createUserWithEmailAndPassword(auth, email, pass);
+             // Se criou com sucesso, já estará logado
+           } catch (createError: any) {
+             console.error("Erro ao criar usuário:", createError);
+             if (createError.code === 'auth/email-already-in-use') {
+                throw new Error("Senha incorreta (Conta já existe).");
+             }
+             if (createError.code === 'auth/weak-password') {
+                throw new Error("A senha precisa ter pelo menos 6 caracteres.");
+             }
+             throw new Error("Erro ao criar conta de mentor: " + createError.message);
+           }
+        } else {
+          throw error;
+        }
+      }
+
     } else {
       throw new Error("Firebase não configurado.");
     }
