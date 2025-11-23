@@ -4,6 +4,7 @@ import { Header } from './components/Header';
 import { RequestForm } from './components/RequestForm';
 import { TicketCard } from './components/TicketCard';
 import { LoginModal } from './components/LoginModal';
+import { RulesModal } from './components/RulesModal';
 import { LandingPage } from './components/LandingPage';
 import { Ticket, TicketStatus, UserRole } from './types';
 import { queueService } from './services/queueService';
@@ -64,6 +65,7 @@ const App: React.FC = () => {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(null);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+  const [isRulesModalOpen, setIsRulesModalOpen] = useState(false);
 
   // Identifica qual perfil está logado
   const loggedMentor = currentUserEmail === MENTORS.kayo.email 
@@ -290,6 +292,14 @@ const App: React.FC = () => {
       {errorMessage && (
         <div className="bg-red-600/90 backdrop-blur-md text-white px-4 py-3 font-bold text-sm sticky top-0 z-[60] flex justify-center items-center gap-2 shadow-lg animate-pulse">
           {errorMessage}
+          {errorMessage.includes("ACESSO NEGADO") && (
+            <button 
+              onClick={() => setIsRulesModalOpen(true)}
+              className="bg-white text-red-600 px-2 py-0.5 rounded text-xs font-bold hover:bg-red-50 uppercase shadow-sm"
+            >
+              Resolver
+            </button>
+          )}
         </div>
       )}
       
@@ -307,6 +317,11 @@ const App: React.FC = () => {
         isOpen={isLoginModalOpen} 
         onClose={() => setIsLoginModalOpen(false)}
         onLogin={(u, p) => queueService.loginAdmin(u, p).then(() => true)}
+      />
+
+      <RulesModal 
+        isOpen={isRulesModalOpen}
+        onClose={() => setIsRulesModalOpen(false)}
       />
 
       <main className="max-w-5xl mx-auto px-4 pt-8 grid grid-cols-1 lg:grid-cols-3 gap-8 flex-grow">
