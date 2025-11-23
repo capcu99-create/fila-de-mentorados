@@ -23,7 +23,7 @@ const MENTORS = {
     id: 'kayo',
     name: 'Tocha 🔥', // Nome alterado de Kayo para Tocha
     email: 'kayo@mentor.com',
-    photo: "https://i.imgur.com/DYgoFnp.jpeg", // Foto da Tocha
+    photo: "https://i.imgur.com/garicye.jpeg", // Foto da Tocha atualizada
     canClearHistory: false
   }
 };
