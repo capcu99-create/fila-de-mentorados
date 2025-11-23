@@ -28,22 +28,29 @@ export const queueService = {
   // --- TICKETS ---
 
   // Inscrever para receber atualizações em tempo real
-  subscribe: (callback: (tickets: Ticket[]) => void) => {
+  subscribe: (callback: (tickets: Ticket[]) => void, onError?: (error: Error) => void) => {
     if (isFirebaseConfigured() && ticketsRef) {
       // MODO ONLINE: Escuta o Firebase
-      const unsubscribe = onValue(ticketsRef, (snapshot) => {
-        const data = snapshot.val();
-        if (data) {
-          const ticketList = Object.keys(data).map(key => ({
-            ...data[key],
-            id: key 
-          }));
-          ticketList.sort((a, b) => b.createdAt - a.createdAt);
-          callback(ticketList);
-        } else {
-          callback([]);
+      const unsubscribe = onValue(
+        ticketsRef, 
+        (snapshot) => {
+          const data = snapshot.val();
+          if (data) {
+            const ticketList = Object.keys(data).map(key => ({
+              ...data[key],
+              id: key 
+            }));
+            ticketList.sort((a, b) => b.createdAt - a.createdAt);
+            callback(ticketList);
+          } else {
+            callback([]);
+          }
+        },
+        (error) => {
+          console.error("Erro de leitura no Firebase:", error);
+          if (onError) onError(error);
         }
-      });
+      );
       return unsubscribe;
     } else {
       // MODO OFFLINE: Lê do LocalStorage
@@ -69,11 +76,16 @@ export const queueService = {
   addTicket: async (ticket: Ticket): Promise<string | null> => {
     if (isFirebaseConfigured() && ticketsRef) {
       // MODO ONLINE
-      const newTicketRef = push(ticketsRef);
-      const newId = newTicketRef.key;
-      if (newId) {
-         await set(newTicketRef, { ...ticket, id: newId });
-         return newId;
+      try {
+        const newTicketRef = push(ticketsRef);
+        const newId = newTicketRef.key;
+        if (newId) {
+           await set(newTicketRef, { ...ticket, id: newId });
+           return newId;
+        }
+      } catch (error) {
+        console.error("Erro ao adicionar ticket:", error);
+        throw error; // Repassa o erro para a UI tratar
       }
       return null;
     } else {
@@ -91,8 +103,13 @@ export const queueService = {
   updateTicket: async (id: string, updates: Partial<Ticket>) => {
     if (isFirebaseConfigured() && db) {
       // MODO ONLINE
-      const ticketRef = ref(db, `tickets/${id}`);
-      await update(ticketRef, updates);
+      try {
+        const ticketRef = ref(db, `tickets/${id}`);
+        await update(ticketRef, updates);
+      } catch (error) {
+        console.error("Erro ao atualizar ticket:", error);
+        throw error;
+      }
     } else {
       // MODO OFFLINE
       const saved = localStorage.getItem('muzeira-tickets');
@@ -127,7 +144,12 @@ export const queueService = {
 
   setMentorStatus: async (isOnline: boolean) => {
     if (isFirebaseConfigured() && statusRef) {
-      await set(statusRef, isOnline);
+      try {
+        await set(statusRef, isOnline);
+      } catch (error) {
+        console.error("Erro ao definir status do mentor:", error);
+        throw error;
+      }
     } else {
       localStorage.setItem('muzeira-mentor-status', String(isOnline));
       window.dispatchEvent(new Event('local-status-update'));

@@ -18,6 +18,7 @@ const MUZEIRA_PHOTO_URL = "https://i.imgur.com/h32KOQd.jpeg";
 const App: React.FC = () => {
   // UI State
   const [hasEntered, setHasEntered] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   // App State
   const [role, setRole] = useState<UserRole>(UserRole.STUDENT);
@@ -34,10 +35,21 @@ const App: React.FC = () => {
     // Verifica se o firebase está configurado
     setIsSystemOnline(queueService.isSystemOnline());
 
-    // Inscreve nos Tickets
-    const unsubscribeTickets = queueService.subscribe((updatedTickets) => {
-      setTickets(updatedTickets);
-    });
+    // Inscreve nos Tickets com tratamento de erro
+    const unsubscribeTickets = queueService.subscribe(
+      (updatedTickets) => {
+        setTickets(updatedTickets);
+        setErrorMessage(null); // Limpa erro se tiver sucesso
+      },
+      (error) => {
+        console.error("App: Erro ao carregar tickets", error);
+        if (error.message.includes("permission_denied")) {
+          setErrorMessage("ERRO DE PERMISSÃO: O banco de dados está bloqueado. Configure as regras do Firebase para 'read: true, write: true'.");
+        } else {
+          setErrorMessage(`Erro de conexão com Firebase: ${error.message}`);
+        }
+      }
+    );
 
     // Inscreve no Status do Mentor (O verdinho)
     const unsubscribeStatus = queueService.subscribeToMentorStatus((status) => {
@@ -81,25 +93,41 @@ const App: React.FC = () => {
   };
 
   const handleCreateTicket = useCallback(async (name: string, reason: string, availability: string) => {
-    const tempId = crypto.randomUUID();
-    const newTicket: Ticket = {
-      id: tempId, 
-      studentName: name,
-      reason,
-      availability,
-      status: TicketStatus.PENDING,
-      createdAt: Date.now(),
-    };
+    try {
+      // Fallback seguro para UUID em navegadores antigos
+      const tempId = typeof crypto.randomUUID === 'function' 
+        ? crypto.randomUUID() 
+        : Math.random().toString(36).substring(2) + Date.now().toString(36);
 
-    await queueService.addTicket(newTicket);
+      const newTicket: Ticket = {
+        id: tempId, 
+        studentName: name,
+        reason,
+        availability,
+        status: TicketStatus.PENDING,
+        createdAt: Date.now(),
+      };
+
+      await queueService.addTicket(newTicket);
+    } catch (error: any) {
+      alert("Erro ao criar ticket: " + error.message + "\n\nVerifique se as regras do Firebase permitem escrita.");
+    }
   }, []);
 
-  const handleStatusChange = (id: string, status: TicketStatus) => {
-    queueService.updateTicket(id, { status });
+  const handleStatusChange = async (id: string, status: TicketStatus) => {
+    try {
+      await queueService.updateTicket(id, { status });
+    } catch (error: any) {
+      alert("Erro ao atualizar status: " + error.message);
+    }
   };
 
-  const handleUpdateTicket = (id: string, updates: Partial<Ticket>) => {
-    queueService.updateTicket(id, updates);
+  const handleUpdateTicket = async (id: string, updates: Partial<Ticket>) => {
+    try {
+      await queueService.updateTicket(id, updates);
+    } catch (error: any) {
+      alert("Erro ao editar ticket: " + error.message);
+    }
   };
 
   const handleToggleRole = () => {
@@ -125,8 +153,12 @@ const App: React.FC = () => {
   };
 
   // Toggle Status (Verdinho)
-  const toggleMentorAvailability = () => {
-    queueService.setMentorStatus(!mentorAvailable);
+  const toggleMentorAvailability = async () => {
+    try {
+      await queueService.setMentorStatus(!mentorAvailable);
+    } catch (error: any) {
+       alert("Erro ao mudar status: " + error.message);
+    }
   };
 
   // 1. Renderizar Landing Page se ainda não entrou
@@ -140,6 +172,12 @@ const App: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-[#0b1120] text-slate-200 pb-20 animate-[fadeIn_0.5s_ease-out]">
+      {errorMessage && (
+        <div className="bg-red-600 text-white text-center px-4 py-3 font-bold text-sm sticky top-0 z-[60]">
+          ⚠️ {errorMessage}
+        </div>
+      )}
+      
       <Header 
         role={role} 
         isAuthenticated={isAdminAuthenticated}
@@ -148,7 +186,7 @@ const App: React.FC = () => {
         avatarUrl={MUZEIRA_PHOTO_URL}
       />
       
-      {!isSystemOnline && (
+      {!isSystemOnline && !errorMessage && (
         <div className="bg-amber-500/10 border-b border-amber-500/20 text-amber-400 text-center py-2 text-xs font-medium">
           ⚠️ Modo Local (Offline). Configure o <code>firebaseConfig.ts</code> para sincronizar dados.
         </div>
