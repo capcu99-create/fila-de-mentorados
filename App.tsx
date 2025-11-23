@@ -15,14 +15,14 @@ const MENTORS = {
   muzeira: {
     id: 'muzeira',
     name: 'Muzeira',
-    email: 'muzeira@mentor.com', 
+    email: 'muriloempresa2022@hotmail.com', 
     photo: "https://i.imgur.com/h32KOQd.jpeg",
     canClearHistory: true
   },
   kayo: {
     id: 'kayo',
     name: 'Tocha 🔥', 
-    email: 'kayo@mentor.com',
+    email: 'kayoprimo77@gmail.com',
     photo: "https://i.imgur.com/garicye.jpeg", 
     canClearHistory: false
   }
@@ -40,9 +40,13 @@ const App: React.FC = () => {
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [isSystemOnline, setIsSystemOnline] = useState(false);
   
-  // Dev State
+  // Dev State (Telegram)
   const [devTelegramId, setDevTelegramId] = useState('');
   
+  // Dev State (Email)
+  const [showEmailConfig, setShowEmailConfig] = useState(false);
+  const [emailConfig, setEmailConfig] = useState({ serviceId: '', templateId: '', publicKey: '' });
+
   // Refs para controle de notificação
   const prevPendingCountRef = useRef(0);
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -64,10 +68,16 @@ const App: React.FC = () => {
   // --- EFEITO: Carregar ID do Telegram salvo (Persistência F5) ---
   useEffect(() => {
     if (role === UserRole.MENTOR) {
-      // Usa uma chave única para cada mentor, assim não mistura se trocar de conta
+      // Telegram
       const storageKey = `telegram_id_${loggedMentor.id}`;
       const savedId = localStorage.getItem(storageKey);
       setDevTelegramId(savedId || '');
+
+      // Email Config (Geral para o sistema)
+      const savedEmailConfig = localStorage.getItem('email_config');
+      if (savedEmailConfig) {
+        setEmailConfig(JSON.parse(savedEmailConfig));
+      }
     }
   }, [role, loggedMentor.id]);
 
@@ -216,13 +226,11 @@ const App: React.FC = () => {
   // Funções da Área Dev (Config Telegram)
   const handleDevSave = async () => {
     try {
-       // Salva no LocalStorage usando a chave específica do mentor (Persistência F5)
        const storageKey = `telegram_id_${loggedMentor.id}`;
        localStorage.setItem(storageKey, devTelegramId);
        
-       // Salva no Banco para o Bot saber enviar
        await queueService.registerTelegramId(devTelegramId, loggedMentor.name);
-       alert("✅ ID Vinculado com Sucesso! (Salvo no navegador e no servidor)");
+       alert("✅ ID Telegram Vinculado!");
     } catch (e: any) { alert(e.message) }
   };
 
@@ -234,6 +242,14 @@ const App: React.FC = () => {
     } catch (e: any) { alert(e.message) }
   };
 
+  // Funções Config Email
+  const handleEmailConfigSave = async () => {
+    try {
+      localStorage.setItem('email_config', JSON.stringify(emailConfig));
+      await queueService.saveEmailConfig(emailConfig);
+      alert("✅ Configuração de E-mail Salva!");
+    } catch (e: any) { alert(e.message) }
+  };
 
   const mentorsList = [
     { ...MENTORS.muzeira, isOnline: mentorStatuses.muzeira },
@@ -302,45 +318,78 @@ const App: React.FC = () => {
                 </button>
               </div>
 
-              {/* --- CONFIGURAÇÃO DO TELEGRAM (NOVA POSIÇÃO) --- */}
-              <div className="p-4 bg-slate-900/80 rounded-xl border border-indigo-500/20">
-                <h3 className="text-xs font-bold text-indigo-400 uppercase mb-3 flex items-center gap-1">
-                   <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-                   </svg>
-                   Notificações Telegram
-                </h3>
-                
-                <div className="flex gap-2 mb-2">
-                   <input 
-                    type="text" 
-                    placeholder="Seu Chat ID"
-                    value={devTelegramId}
-                    onChange={(e) => setDevTelegramId(e.target.value)}
-                    className="w-full bg-slate-800 border border-slate-600 rounded px-2 py-1 text-xs text-white focus:outline-none focus:border-indigo-500"
-                   />
-                   <button 
-                    onClick={handleDevSave}
-                    className="px-3 py-1 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded"
-                   >
-                     Salvar
-                   </button>
+              {/* --- CONFIGURAÇÃO DE NOTIFICAÇÕES --- */}
+              <div className="bg-slate-900/80 rounded-xl border border-indigo-500/20 overflow-hidden">
+                <div className="p-4 bg-slate-900/50 border-b border-slate-800">
+                  <h3 className="text-xs font-bold text-indigo-400 uppercase flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                    </svg>
+                    Telegram
+                  </h3>
+                  <div className="mt-2 flex gap-2">
+                    <input 
+                      type="text" 
+                      placeholder="Chat ID"
+                      value={devTelegramId}
+                      onChange={(e) => setDevTelegramId(e.target.value)}
+                      className="w-full bg-slate-800 border border-slate-600 rounded px-2 py-1 text-xs text-white focus:outline-none focus:border-indigo-500"
+                    />
+                    <button onClick={handleDevSave} className="px-3 py-1 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded">Salvar</button>
+                  </div>
+                  <div className="flex justify-between items-center mt-1 px-1">
+                    <a href="https://t.me/userinfobot" target="_blank" className="text-[10px] text-slate-500 hover:text-indigo-400 underline">Meu ID?</a>
+                    <button onClick={handleDevTest} className="text-[10px] text-green-400 hover:text-green-300 font-medium">Testar</button>
+                  </div>
                 </div>
 
-                <div className="flex justify-between items-center px-1">
-                   <a 
-                     href="https://t.me/userinfobot" 
-                     target="_blank" 
-                     className="text-[10px] text-slate-500 hover:text-indigo-400 underline"
-                   >
-                     Não sabe seu ID?
-                   </a>
-                   <button 
-                     onClick={handleDevTest}
-                     className="text-[10px] text-green-400 hover:text-green-300 font-medium flex items-center gap-1"
-                   >
-                     Testar Envio
-                   </button>
+                <div className="p-4">
+                  <div className="flex justify-between items-center mb-2 cursor-pointer" onClick={() => setShowEmailConfig(!showEmailConfig)}>
+                    <h3 className="text-xs font-bold text-orange-400 uppercase flex items-center gap-2">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                      </svg>
+                      Email (EmailJS)
+                    </h3>
+                    <svg xmlns="http://www.w3.org/2000/svg" className={`h-4 w-4 text-slate-500 transition-transform ${showEmailConfig ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </div>
+                  
+                  {showEmailConfig && (
+                    <div className="space-y-2 animate-[fadeIn_0.3s_ease-out]">
+                      <input 
+                        type="text" 
+                        placeholder="Service ID"
+                        value={emailConfig.serviceId}
+                        onChange={(e) => setEmailConfig({...emailConfig, serviceId: e.target.value})}
+                        className="w-full bg-slate-800 border border-slate-600 rounded px-2 py-1 text-xs text-white focus:outline-none focus:border-orange-500"
+                      />
+                      <input 
+                        type="text" 
+                        placeholder="Template ID"
+                        value={emailConfig.templateId}
+                        onChange={(e) => setEmailConfig({...emailConfig, templateId: e.target.value})}
+                        className="w-full bg-slate-800 border border-slate-600 rounded px-2 py-1 text-xs text-white focus:outline-none focus:border-orange-500"
+                      />
+                      <input 
+                        type="text" 
+                        placeholder="Public Key"
+                        value={emailConfig.publicKey}
+                        onChange={(e) => setEmailConfig({...emailConfig, publicKey: e.target.value})}
+                        className="w-full bg-slate-800 border border-slate-600 rounded px-2 py-1 text-xs text-white focus:outline-none focus:border-orange-500"
+                      />
+                      <button 
+                        onClick={handleEmailConfigSave}
+                        className="w-full py-1.5 bg-orange-600 hover:bg-orange-700 text-white text-xs font-bold rounded mt-1"
+                      >
+                        Salvar Configuração de Email
+                      </button>
+                      <a href="https://www.emailjs.com/docs/tutorial/creating-contact-form/" target="_blank" className="block text-center text-[10px] text-slate-500 hover:text-orange-400 mt-1">
+                        Como pegar essas chaves?
+                      </a>
+                    </div>
+                  )}
                 </div>
               </div>
 

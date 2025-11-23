@@ -1,3 +1,4 @@
+
 import { initializeApp } from 'firebase/app';
 import { getDatabase, ref, onValue, push, set, update, remove, get } from 'firebase/database';
 import { getAuth, signInAnonymously, signInWithEmailAndPassword, signOut, onAuthStateChanged, User } from 'firebase/auth';
@@ -11,17 +12,21 @@ const TELEGRAM_CONFIG = {
   BOT_TOKEN: "8440630367:AAHGybcYl-vWbGC6WfzyM3qjdZyoNKDuphY",
 };
 
-// Função interna para buscar IDs salvos no Firebase e enviar mensagem
+// ==========================================
+// 📧 LISTA DE E-MAILS DOS MENTORES
+// ==========================================
+const MENTOR_EMAILS = [
+  "muriloempresa2022@hotmail.com",
+  "kayoprimo77@gmail.com"
+];
+
+// --- TELEGRAM NOTIFICATION ---
 const sendTelegramNotification = async (ticket: Ticket) => {
   if (!TELEGRAM_CONFIG.BOT_TOKEN || !isFirebaseConfigured() || !db) return;
 
   try {
-    // Busca os IDs cadastrados no Firebase
     const snapshot = await get(ref(db, 'systemStatus/telegramIds'));
-    if (!snapshot.exists()) {
-      console.warn("Nenhum mentor conectou o Telegram ainda.");
-      return;
-    }
+    if (!snapshot.exists()) return;
 
     const idsMap = snapshot.val();
     const chatIds = Object.keys(idsMap);
@@ -36,23 +41,62 @@ const sendTelegramNotification = async (ticket: Ticket) => {
 _Corre lá pra atender!_ 🚀
     `.trim();
 
-    // Envia para todos os IDs encontrados
     for (const chatId of chatIds) {
       try {
-        // MUDANÇA: Usando GET com Query Params para garantir que o Telegram aceite a requisição vinda do navegador
         const url = `https://api.telegram.org/bot${TELEGRAM_CONFIG.BOT_TOKEN}/sendMessage?chat_id=${chatId}&text=${encodeURIComponent(message)}&parse_mode=Markdown`;
-        
-        await fetch(url, {
-          method: 'GET',
-          mode: 'no-cors'
-        });
-        console.log(`Tentativa de envio para ${chatId} realizada.`);
+        await fetch(url, { method: 'GET', mode: 'no-cors' });
       } catch (error) {
-        console.error(`Erro ao enviar Telegram para ${chatId}:`, error);
+        console.error(`Erro telegram ${chatId}:`, error);
       }
     }
   } catch (error) {
-    console.error("Erro no fluxo de notificação Telegram:", error);
+    console.error("Erro geral Telegram:", error);
+  }
+};
+
+// --- EMAIL NOTIFICATION (EMAILJS) ---
+const sendEmailNotification = async (ticket: Ticket) => {
+  if (!isFirebaseConfigured() || !db) return;
+
+  try {
+    // Busca configuração do EmailJS salva no banco
+    const snapshot = await get(ref(db, 'systemStatus/emailConfig'));
+    if (!snapshot.exists()) return;
+
+    const config = snapshot.val();
+    const { serviceId, templateId, publicKey } = config;
+
+    if (!serviceId || !templateId || !publicKey) return;
+
+    // Envia para cada mentor
+    for (const email of MENTOR_EMAILS) {
+      try {
+        const payload = {
+          service_id: serviceId,
+          template_id: templateId,
+          user_id: publicKey,
+          template_params: {
+            to_email: email, // Variável que deve existir no seu template do EmailJS
+            to_name: "Mentor",
+            student_name: ticket.studentName,
+            message: ticket.reason,
+            availability: ticket.availability
+          }
+        };
+
+        await fetch('https://api.emailjs.com/api/v1.0/email/send', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        console.log(`Email enviado para ${email}`);
+      } catch (err) {
+        console.error(`Erro envio email para ${email}`, err);
+      }
+    }
+
+  } catch (error) {
+    console.error("Erro na lógica de e-mail:", error);
   }
 };
 
@@ -86,15 +130,12 @@ if (isFirebaseConfigured()) {
 export const queueService = {
   isSystemOnline: () => isFirebaseConfigured(),
 
-  // --- TELEGRAM SETUP ---
+  // --- CONFIGURAÇÕES ---
   
-  // Salva o ID manualmente (método infalível)
   registerTelegramId: async (chatId: string, name: string) => {
     if (!isFirebaseConfigured() || !db) throw new Error("Banco de dados offline.");
-    
-    // Remove espaços e garante que é numérico
     const cleanId = chatId.trim().replace(/\s/g, '');
-    if (!/^-?\d+$/.test(cleanId)) throw new Error("ID inválido. Deve conter apenas números.");
+    if (!/^-?\d+$/.test(cleanId)) throw new Error("ID inválido.");
 
     await update(ref(db, `systemStatus/telegramIds/${cleanId}`), {
       name: name, 
@@ -102,19 +143,17 @@ export const queueService = {
     });
   },
 
-  // Envia notificação de teste
+  saveEmailConfig: async (config: { serviceId: string, templateId: string, publicKey: string }) => {
+    if (!isFirebaseConfigured() || !db) throw new Error("Banco de dados offline.");
+    await set(ref(db, 'systemStatus/emailConfig'), config);
+  },
+
   sendTestNotification: async (chatId: string) => {
      const cleanId = chatId.trim();
      if (!cleanId) throw new Error("ID vazio.");
-
      const text = "✅ *TESTE DE NOTIFICAÇÃO*\n\nSe você recebeu isso, o sistema está funcionando!\n\n_Mentoria do Muzeira_";
      const url = `https://api.telegram.org/bot${TELEGRAM_CONFIG.BOT_TOKEN}/sendMessage?chat_id=${cleanId}&text=${encodeURIComponent(text)}&parse_mode=Markdown`;
-     
-     // Usamos no-cors para evitar bloqueio do navegador, mas agora via GET
-     await fetch(url, {
-        method: 'GET',
-        mode: 'no-cors'
-      });
+     await fetch(url, { method: 'GET', mode: 'no-cors' });
   },
 
   // --- AUTHENTICATION ---
@@ -122,8 +161,11 @@ export const queueService = {
   loginAdmin: async (username: string, pass: string) => {
     if (isFirebaseConfigured() && auth) {
       let email = username;
+      // Ajuste para permitir login com os emails novos se o usuario digitar apenas o nome
       if (!email.includes('@')) {
-        email = `${username}@mentor.com`;
+         if (username.toLowerCase().includes('muzeira')) email = 'muriloempresa2022@hotmail.com';
+         else if (username.toLowerCase().includes('kayo') || username.toLowerCase().includes('tocha')) email = 'kayoprimo77@gmail.com';
+         else email = `${username}@mentor.com`;
       }
       await signInWithEmailAndPassword(auth, email, pass);
     } else {
@@ -181,8 +223,11 @@ export const queueService = {
       
       if (newId) {
          await set(newTicketRef, ticketWithAuth);
-         // Dispara notificação sem esperar (fire and forget)
+         
+         // 🔥 DISPAROS DE NOTIFICAÇÃO (Telegram + Email)
          sendTelegramNotification(ticket).catch(console.error);
+         sendEmailNotification(ticket).catch(console.error);
+
          return newId;
       }
       return null;
@@ -222,7 +267,6 @@ export const queueService = {
         await update(ref(db), updates);
       }
     } else {
-       // Local Storage Clear logic...
        const saved = localStorage.getItem('muzeira-tickets');
        if (saved) {
           const list = JSON.parse(saved).filter((t: Ticket) => t.status === 'PENDING');
