@@ -204,25 +204,10 @@ const App: React.FC = () => {
     }
   };
 
-  const handleConnectTelegram = async () => {
-    const id = prompt("Digite seu ID do Telegram:\n\n1. Abra o bot @userinfobot no Telegram\n2. Copie o número (Id)\n3. Cole aqui:");
-    
-    if (id) {
-      try {
-        await queueService.registerTelegramId(id, loggedMentor.name);
-        alert("ID salvo! Vamos fazer um teste...");
-        await queueService.sendTestNotification(id);
-        alert("Mensagem de teste enviada! Verifique seu Telegram.");
-      } catch (e: any) {
-        alert(`Erro: ${e.message}`);
-      }
-    }
-  };
-
-  // Funções da Área Dev
+  // Funções da Área Dev (Config Telegram)
   const handleDevSave = async () => {
     try {
-       await queueService.registerTelegramId(devTelegramId, "Dev Tester");
+       await queueService.registerTelegramId(devTelegramId, loggedMentor.name);
        alert("✅ ID Salvo com sucesso!");
     } catch (e: any) { alert(e.message) }
   };
@@ -298,16 +283,6 @@ const App: React.FC = () => {
                   }`}
                 >
                   {isCurrentMentorOnline ? 'VOCÊ ESTÁ ONLINE' : 'VOCÊ ESTÁ OFFLINE'}
-                </button>
-
-                <button 
-                  onClick={handleConnectTelegram}
-                  className="w-full py-2 px-4 bg-[#229ED9]/10 border border-[#229ED9]/30 text-[#229ED9] hover:bg-[#229ED9]/20 rounded-lg text-sm transition-colors flex items-center justify-center gap-2"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.48-.94-2.4-1.54-1.06-.7-.37-1.09.23-1.7.15-.15 2.81-2.57 2.86-2.79.01-.03.01-.13-.05-.18-.06-.05-.16-.03-.23-.02-.1.02-1.63 1.03-4.6 3.03-.43.3-.82.44-1.17.43-.38-.01-1.12-.21-1.67-.38-.68-.21-1.22-.32-1.17-.67.02-.18.28-.36.75-.55 2.96-1.29 4.94-2.14 5.93-2.55 2.83-1.17 3.41-1.37 3.8-1.38.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06.01.24 0 .24z"/>
-                  </svg>
-                  Configurar Telegram
                 </button>
               </div>
 
@@ -392,9 +367,9 @@ const App: React.FC = () => {
         </div>
       </main>
 
-      {/* RODAPÉ DE DESENVOLVEDOR (TESTE RÁPIDO) */}
+      {/* RODAPÉ DE CONFIGURAÇÃO - VISÍVEL APENAS PARA MENTORES */}
       <footer className="mt-12 py-6 border-t border-slate-800 bg-slate-900/50 backdrop-blur relative">
-        {showTelegramHelp && (
+        {role === UserRole.MENTOR && showTelegramHelp && (
            <div className="absolute bottom-full left-0 w-full bg-slate-900 border-t border-indigo-500/30 p-4 shadow-2xl animate-in slide-in-from-bottom-5">
               <div className="max-w-5xl mx-auto flex flex-col md:flex-row gap-6">
                 <div className="flex-1">
@@ -402,14 +377,14 @@ const App: React.FC = () => {
                      <span className="bg-indigo-500 text-white w-5 h-5 rounded-full flex items-center justify-center text-xs">1</span>
                      Falar com o Bot
                    </h3>
-                   <p className="text-slate-400 text-xs">Abra o seu Bot no Telegram (o que você criou com o Token) e clique em <strong>Começar (Start)</strong> ou mande um "Oi".</p>
+                   <p className="text-slate-400 text-xs">Abra o seu Bot no Telegram e clique em <strong>Começar (Start)</strong> ou mande um "Oi".</p>
                 </div>
                 <div className="flex-1">
                    <h3 className="text-indigo-400 font-bold mb-2 flex items-center gap-2">
                      <span className="bg-indigo-500 text-white w-5 h-5 rounded-full flex items-center justify-center text-xs">2</span>
                      Pegar seu ID
                    </h3>
-                   <p className="text-slate-400 text-xs">Mande uma mensagem para o bot <a href="https://t.me/userinfobot" target="_blank" className="text-white underline">@userinfobot</a>. Ele vai responder com um número (ex: 1293012).</p>
+                   <p className="text-slate-400 text-xs">Mande uma mensagem para o bot <a href="https://t.me/userinfobot" target="_blank" className="text-white underline">@userinfobot</a>. Ele vai responder com um número.</p>
                 </div>
                 <div className="flex-1">
                    <h3 className="text-indigo-400 font-bold mb-2 flex items-center gap-2">
@@ -430,35 +405,38 @@ const App: React.FC = () => {
              <span className="hidden md:inline">Sistema de Filas</span>
            </div>
            
-           <div className="flex items-center gap-2 p-2 bg-slate-800 rounded-lg border border-slate-700 shadow-lg">
-             <button 
-               onClick={() => setShowTelegramHelp(!showTelegramHelp)}
-               className="bg-indigo-500/20 text-indigo-400 hover:bg-indigo-500 hover:text-white w-6 h-6 rounded flex items-center justify-center transition-colors font-bold"
-               title="Como configurar?"
-             >
-               ?
-             </button>
-             <span className="font-bold text-slate-300">TELEGRAM CONFIG:</span>
-             <input 
-               type="text" 
-               placeholder="Seu ID (Ex: 123456)" 
-               className="bg-slate-900 border border-slate-600 rounded px-2 py-1 text-slate-300 w-32 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
-               value={devTelegramId}
-               onChange={(e) => setDevTelegramId(e.target.value)}
-             />
-             <button 
-               onClick={handleDevSave}
-               className="px-3 py-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded transition-colors font-medium"
-             >
-               Salvar
-             </button>
-             <button 
-               onClick={handleDevTest}
-               className="px-3 py-1 bg-green-600 hover:bg-green-700 text-white rounded transition-colors font-medium flex items-center gap-1"
-             >
-               Testar
-             </button>
-           </div>
+           {role === UserRole.MENTOR && (
+             <div className="flex items-center gap-2 p-2 bg-slate-800 rounded-lg border border-slate-700 shadow-lg">
+               <button 
+                 onClick={() => setShowTelegramHelp(!showTelegramHelp)}
+                 className="bg-indigo-500/20 text-indigo-400 hover:bg-indigo-500 hover:text-white w-6 h-6 rounded flex items-center justify-center transition-colors font-bold"
+                 title="Como configurar?"
+               >
+                 ?
+               </button>
+               <span className="font-bold text-slate-300 hidden sm:inline">TELEGRAM:</span>
+               <input 
+                 type="text" 
+                 placeholder="Seu Chat ID" 
+                 className="bg-slate-900 border border-slate-600 rounded px-2 py-1 text-slate-300 w-28 sm:w-32 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                 value={devTelegramId}
+                 onChange={(e) => setDevTelegramId(e.target.value)}
+               />
+               <a href="https://t.me/userinfobot" target="_blank" className="text-[10px] text-indigo-400 hover:underline">(Pegar ID)</a>
+               <button 
+                 onClick={handleDevSave}
+                 className="px-3 py-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded transition-colors font-medium"
+               >
+                 Salvar
+               </button>
+               <button 
+                 onClick={handleDevTest}
+                 className="px-3 py-1 bg-green-600 hover:bg-green-700 text-white rounded transition-colors font-medium flex items-center gap-1"
+               >
+                 Testar
+               </button>
+             </div>
+           )}
         </div>
       </footer>
     </div>
