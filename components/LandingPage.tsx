@@ -1,11 +1,13 @@
+
 import React from 'react';
 
 interface LandingPageProps {
   onEnter: () => void;
   avatarUrl: string;
+  isOnline: boolean;
 }
 
-export const LandingPage: React.FC<LandingPageProps> = ({ onEnter, avatarUrl }) => {
+export const LandingPage: React.FC<LandingPageProps> = ({ onEnter, avatarUrl, isOnline }) => {
   return (
     <div className="min-h-screen bg-[#0f172a] text-white flex flex-col items-center justify-center relative overflow-hidden font-sans selection:bg-indigo-500/30">
       
@@ -26,21 +28,27 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnter, avatarUrl }) 
         
         {/* Foto com Efeito Glassmorphism */}
         <div className="relative mb-10 group cursor-pointer" onClick={onEnter}>
-          <div className="absolute -inset-0.5 bg-gradient-to-br from-indigo-500 via-purple-500 to-cyan-500 rounded-full blur opacity-60 group-hover:opacity-100 transition duration-1000 group-hover:duration-200"></div>
+          <div className={`absolute -inset-0.5 rounded-full blur opacity-60 group-hover:opacity-100 transition duration-1000 group-hover:duration-200 ${isOnline ? 'bg-gradient-to-br from-indigo-500 via-purple-500 to-cyan-500' : 'bg-slate-700'}`}></div>
           <div className="relative w-40 h-40 rounded-full p-1 bg-[#0f172a] flex items-center justify-center overflow-hidden ring-1 ring-white/10 shadow-2xl">
              <img 
                src={avatarUrl} 
                alt="Muzeira" 
-               className="w-full h-full object-cover rounded-full transform transition-transform duration-500 group-hover:scale-105"
+               className={`w-full h-full object-cover rounded-full transform transition-transform duration-500 group-hover:scale-105 ${!isOnline ? 'grayscale-[0.5]' : ''}`}
                onError={(e) => {
                  (e.target as HTMLImageElement).src = 'https://github.com/github.png';
                }}
              />
           </div>
           {/* Status Badge */}
-          <div className="absolute bottom-1 right-1 flex h-5 w-5">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-5 w-5 bg-green-500 border-2 border-[#0f172a]"></span>
+          <div className="absolute bottom-1 right-1 flex h-6 w-6" title={isOnline ? "Mentor Online" : "Mentor Offline"}>
+            {isOnline ? (
+              <>
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-6 w-6 bg-green-500 border-4 border-[#0f172a]"></span>
+              </>
+            ) : (
+              <span className="relative inline-flex rounded-full h-6 w-6 bg-slate-500 border-4 border-[#0f172a]"></span>
+            )}
           </div>
         </div>
 
@@ -74,9 +82,11 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnter, avatarUrl }) 
 
         {/* Footer Stats */}
         <div className="mt-16 flex justify-center text-center border-t border-slate-800/50 pt-8 w-full max-w-md">
-           <div>
-             <p className="text-2xl font-bold text-white">Hot</p>
-             <p className="text-xs text-slate-500 uppercase tracking-wider font-mono">Estratégias</p>
+           <div className="flex flex-col items-center">
+             <p className={`text-2xl font-bold ${isOnline ? 'text-green-400' : 'text-slate-500'}`}>
+               {isOnline ? 'ONLINE' : 'OFFLINE'}
+             </p>
+             <p className="text-xs text-slate-500 uppercase tracking-wider font-mono">Status do Mentor</p>
            </div>
         </div>
       </div>

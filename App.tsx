@@ -110,6 +110,10 @@ const App: React.FC = () => {
     setHasEntered(true);
   };
 
+  const handleBackToLanding = () => {
+    setHasEntered(false);
+  };
+
   const handleError = (error: any, context: string) => {
     console.error(`Erro em ${context}:`, error);
     const msg = error.message || error.toString();
@@ -197,7 +201,13 @@ const App: React.FC = () => {
   };
 
   if (!hasEntered) {
-    return <LandingPage onEnter={handleEnterSystem} avatarUrl={MUZEIRA_PHOTO_URL} />;
+    return (
+      <LandingPage 
+        onEnter={handleEnterSystem} 
+        avatarUrl={MUZEIRA_PHOTO_URL} 
+        isOnline={mentorAvailable}
+      />
+    );
   }
 
   const pendingTickets = tickets.filter(t => t.status === TicketStatus.PENDING);
@@ -218,6 +228,7 @@ const App: React.FC = () => {
         role={role} 
         isAuthenticated={isAdminAuthenticated}
         onToggleRole={handleToggleRole} 
+        onBack={handleBackToLanding}
         isOnline={mentorAvailable}
         avatarUrl={MUZEIRA_PHOTO_URL}
       />
