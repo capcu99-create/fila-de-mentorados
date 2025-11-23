@@ -240,14 +240,17 @@ const App: React.FC = () => {
     }
   };
 
+  // Lista consolidada de mentores para passar para os componentes
+  const mentorsList = [
+    { ...MENTORS.muzeira, isOnline: mentorStatuses.muzeira },
+    { ...MENTORS.kayo, isOnline: mentorStatuses.kayo }
+  ];
+
   if (!hasEntered) {
     return (
       <LandingPage 
         onEnter={handleEnterSystem} 
-        mentors={[
-          { ...MENTORS.muzeira, isOnline: mentorStatuses.muzeira },
-          { ...MENTORS.kayo, isOnline: mentorStatuses.kayo }
-        ]}
+        mentors={mentorsList}
       />
     );
   }
@@ -275,7 +278,8 @@ const App: React.FC = () => {
         isAuthenticated={isAdminAuthenticated}
         onToggleRole={handleToggleRole} 
         onBack={handleBackToLanding}
-        isOnline={isAnyMentorOnline}
+        mentors={mentorsList}
+        isOnline={isCurrentMentorOnline}
         avatarUrl={role === UserRole.MENTOR ? loggedMentor.photo : undefined} 
       />
       

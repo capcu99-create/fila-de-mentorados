@@ -2,16 +2,32 @@
 import React from 'react';
 import { UserRole } from '../types';
 
+export interface MentorSummary {
+  id: string;
+  name: string;
+  photo: string;
+  isOnline: boolean;
+}
+
 interface HeaderProps {
   role: UserRole;
   isAuthenticated: boolean;
   onToggleRole: () => void;
   onBack: () => void;
+  mentors?: MentorSummary[];
   isOnline?: boolean;
   avatarUrl?: string;
 }
 
-export const Header: React.FC<HeaderProps> = ({ role, isAuthenticated, onToggleRole, onBack, isOnline = false, avatarUrl }) => {
+export const Header: React.FC<HeaderProps> = ({ 
+  role, 
+  isAuthenticated, 
+  onToggleRole, 
+  onBack, 
+  mentors = [],
+  isOnline = false, 
+  avatarUrl 
+}) => {
   return (
     <header className="bg-slate-900 border-b border-slate-800 sticky top-0 z-50 backdrop-blur-md bg-opacity-80">
       <div className="max-w-5xl mx-auto px-4 py-4 flex justify-between items-center">
@@ -30,27 +46,56 @@ export const Header: React.FC<HeaderProps> = ({ role, isAuthenticated, onToggleR
 
           <div className="h-8 w-px bg-slate-800 mx-2 hidden sm:block"></div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-4">
+            {/* Área dos Avatares */}
             <div className="relative">
               {avatarUrl ? (
-                <div className="w-10 h-10 rounded-full p-0.5 bg-gradient-to-tr from-indigo-500 to-purple-500 shadow-lg shadow-indigo-500/20">
-                  <img 
-                    src={avatarUrl} 
-                    alt="Perfil" 
-                    className="w-full h-full object-cover rounded-full border-2 border-slate-900"
-                  />
+                // VISÃO DO MENTOR (Logado) - Mostra apenas sua própria foto
+                <div className="relative">
+                  <div className="w-10 h-10 rounded-full p-0.5 bg-gradient-to-tr from-indigo-500 to-purple-500 shadow-lg shadow-indigo-500/20">
+                    <img 
+                      src={avatarUrl} 
+                      alt="Perfil" 
+                      className="w-full h-full object-cover rounded-full border-2 border-slate-900"
+                    />
+                  </div>
+                  {isOnline && (
+                    <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 border-2 border-slate-900 rounded-full animate-pulse" title="Você está Online"></span>
+                  )}
                 </div>
               ) : (
-                <div className="w-10 h-10 rounded-full overflow-hidden shadow-lg shadow-indigo-500/20 border border-indigo-500/30">
-                  <img 
-                    src="https://i.imgur.com/h32KOQd.jpeg" 
-                    alt="Logo Muzeira" 
-                    className="w-full h-full object-cover"
-                  />
+                // VISÃO DO ALUNO - Mostra TODOS os mentores
+                <div className="flex items-center -space-x-2 hover:space-x-2 transition-all duration-300">
+                  {mentors.map((mentor) => (
+                    <div key={mentor.id} className="relative group transition-transform hover:z-10 hover:scale-110 cursor-help">
+                      <div className={`w-10 h-10 rounded-full p-0.5 ${mentor.isOnline ? 'bg-gradient-to-tr from-green-500 to-emerald-500 shadow-lg shadow-green-500/20' : 'bg-slate-700 border border-slate-600'}`}>
+                        <img 
+                          src={mentor.photo} 
+                          alt={mentor.name} 
+                          className={`w-full h-full object-cover rounded-full border-2 border-slate-900 ${!mentor.isOnline ? 'grayscale opacity-60' : ''}`}
+                        />
+                      </div>
+                      
+                      {/* Indicador de Status */}
+                      <span className={`absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 border-2 border-slate-900 rounded-full ${mentor.isOnline ? 'bg-green-500 animate-pulse' : 'bg-slate-500'}`}></span>
+                      
+                      {/* Tooltip com Nome */}
+                      <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-slate-900/95 backdrop-blur border border-slate-700 text-white text-[10px] px-2 py-1 rounded shadow-xl whitespace-nowrap pointer-events-none z-20">
+                        <span className="font-bold">{mentor.name}</span>
+                        <span className={`block text-[9px] ${mentor.isOnline ? 'text-green-400' : 'text-slate-500'}`}>
+                          {mentor.isOnline ? 'Online' : 'Offline'}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                  
+                  {mentors.length === 0 && (
+                     // Fallback caso não haja mentores carregados
+                     <div className="w-10 h-10 rounded-full overflow-hidden shadow-lg shadow-indigo-500/20 border border-indigo-500/30">
+                       <img src="https://i.imgur.com/h32KOQd.jpeg" alt="Logo Muzeira" className="w-full h-full object-cover" />
+                     </div>
+                  )}
                 </div>
-              )}
-              {isOnline && avatarUrl && (
-                <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 border-2 border-slate-900 rounded-full animate-pulse" title="Online"></span>
               )}
             </div>
             
