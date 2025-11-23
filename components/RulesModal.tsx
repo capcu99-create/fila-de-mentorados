@@ -15,16 +15,17 @@ export const RulesModal: React.FC<RulesModalProps> = ({ isOpen, onClose }) => {
     "tickets": {
       ".indexOn": ["createdAt"],
       "$ticketId": {
-        // Permite escrever se:
-        // 1. É um novo ticket (!data.exists)
-        // 2. O usuário é o dono (createdBy == auth.uid)
-        // 3. O usuário é Admin (@mentor.com)
-        ".write": "auth != null && (!data.exists() || data.child('createdBy').val() === auth.uid || (auth.token.email != null && auth.token.email.matches(/.*@mentor.com/)))"
+        // PERMISSÕES DE ESCRITA:
+        // 1. Criar novo ticket: Qualquer usuário autenticado (!data.exists)
+        // 2. Editar próprio ticket: Dono do ticket (createdBy == auth.uid)
+        // 3. Mentores/Admins: Emails específicos liberados
+        ".write": "auth != null && (!data.exists() || data.child('createdBy').val() === auth.uid || auth.token.email === 'muriloempresa2022@hotmail.com' || auth.token.email === 'kayoprimo77@gmail.com' || auth.token.email.matches(/.*@mentor.com/))"
       }
     },
     "systemStatus": {
       ".read": true,
-      ".write": "auth != null && auth.token.email.matches(/.*@mentor.com/)"
+      // Apenas mentores podem alterar status (Online/Offline) e configs
+      ".write": "auth != null && (auth.token.email === 'muriloempresa2022@hotmail.com' || auth.token.email === 'kayoprimo77@gmail.com' || auth.token.email.matches(/.*@mentor.com/))"
     }
   }
 }`;
@@ -37,7 +38,7 @@ export const RulesModal: React.FC<RulesModalProps> = ({ isOpen, onClose }) => {
             <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
             </svg>
-            ⚠️ Ação Necessária no Firebase
+            ⚠️ Acesso Negado: Atualize as Regras
           </h2>
           <button onClick={onClose} className="text-slate-400 hover:text-white">
             <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -49,12 +50,12 @@ export const RulesModal: React.FC<RulesModalProps> = ({ isOpen, onClose }) => {
         <div className="space-y-4 overflow-y-auto pr-2">
           <div className="bg-red-500/10 border border-red-500/20 p-3 rounded-lg">
              <p className="text-red-300 text-sm font-semibold">
-               Seus botões de "Concluir" ou "Cancelar" não estão funcionando porque o Firebase bloqueou a edição.
+               O Firebase está bloqueando as ações dos mentores (Hotmail/Gmail). Você precisa atualizar as regras de segurança.
              </p>
           </div>
 
           <p className="text-slate-300 text-sm">
-            Para consertar, você precisa copiar o código abaixo e colar na aba <strong>Regras (Rules)</strong> do seu Realtime Database.
+            Copie o código abaixo e cole na aba <strong>Regras (Rules)</strong> do seu Realtime Database.
           </p>
 
           <div className="relative group">
@@ -78,7 +79,7 @@ export const RulesModal: React.FC<RulesModalProps> = ({ isOpen, onClose }) => {
                <li>Vá para <a href="https://console.firebase.google.com/" target="_blank" className="text-indigo-400 underline">console.firebase.google.com</a></li>
                <li>Entre no seu projeto e clique em <strong>Realtime Database</strong> no menu lateral.</li>
                <li>Clique na aba <strong>Regras (Rules)</strong> no topo.</li>
-               <li>Apague tudo que estiver lá, cole o código acima e clique em <strong>Publicar</strong>.</li>
+               <li>Apague tudo, cole o novo código e clique em <strong>Publicar</strong>.</li>
              </ol>
           </div>
         </div>

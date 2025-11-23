@@ -213,6 +213,11 @@ const App: React.FC = () => {
       await queueService.updateTicket(id, updates);
     } catch (error: any) {
       console.error(error);
+      if (error.message && (error.message.includes("permission_denied") || error.message.includes("PERMISSION_DENIED"))) {
+        setErrorMessage("ACESSO NEGADO: Verifique as regras do banco.");
+      } else {
+        alert("Erro ao atualizar status: " + error.message);
+      }
     }
   };
 
@@ -221,6 +226,9 @@ const App: React.FC = () => {
       await queueService.updateTicket(id, updates);
     } catch (error: any) {
       console.error(error);
+      if (error.message && (error.message.includes("permission_denied") || error.message.includes("PERMISSION_DENIED"))) {
+        setErrorMessage("ACESSO NEGADO: Verifique as regras do banco.");
+      }
     }
   };
 
@@ -450,7 +458,16 @@ const App: React.FC = () => {
                 {loggedMentor.canClearHistory && (
                   <button 
                     onClick={() => {
-                       if(confirm("Apagar histórico?")) queueService.clearHistory().catch(console.error);
+                       if(confirm("Apagar histórico?")) {
+                         queueService.clearHistory().catch((err) => {
+                           console.error(err);
+                           if (err.message && (err.message.includes("permission_denied") || err.message.includes("PERMISSION_DENIED"))) {
+                             setErrorMessage("ACESSO NEGADO: Verifique as regras do banco.");
+                           } else {
+                             alert("Erro ao limpar histórico: " + err.message);
+                           }
+                         });
+                       }
                     }}
                     disabled={historyTickets.length === 0}
                     className="w-full py-2 px-4 border border-slate-600/50 text-slate-400 hover:bg-slate-700 hover:text-white rounded-lg text-sm transition-colors"
