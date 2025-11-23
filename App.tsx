@@ -80,8 +80,8 @@ const App: React.FC = () => {
       const savedId = localStorage.getItem(storageKey);
       setDevTelegramId(savedId || '');
 
-      // Email Config (Geral para o sistema)
-      const savedEmailConfig = localStorage.getItem('email_config');
+      // Email Config (Geral para o sistema) - v2 para evitar cache antigo
+      const savedEmailConfig = localStorage.getItem('email_config_v2');
       if (savedEmailConfig) {
         const parsed = JSON.parse(savedEmailConfig);
         // Mantém os IDs novos padrão se o salvo estiver vazio
@@ -262,7 +262,7 @@ const App: React.FC = () => {
   // Funções Config Email
   const handleEmailConfigSave = async () => {
     try {
-      localStorage.setItem('email_config', JSON.stringify(emailConfig));
+      localStorage.setItem('email_config_v2', JSON.stringify(emailConfig));
       await queueService.saveEmailConfig(emailConfig);
       alert("✅ Configuração de E-mail Salva!");
     } catch (e: any) { 
@@ -447,6 +447,20 @@ const App: React.FC = () => {
                           Testar
                         </button>
                       </div>
+
+                      <div className="mt-2 text-center">
+                         <button 
+                           onClick={() => setEmailConfig({ 
+                             serviceId: 'service_72w890o', 
+                             templateId: 'template_aghmd9q', 
+                             publicKey: '08QOM5GgtbxferzXx' 
+                           })}
+                           className="text-[10px] text-slate-500 hover:text-slate-300 underline"
+                         >
+                           Restaurar Padrão
+                         </button>
+                      </div>
+
                       <a href="https://www.emailjs.com/" target="_blank" className="block text-center text-[10px] text-slate-500 hover:text-orange-400 mt-1">
                         Obter chaves gratuitamente
                       </a>

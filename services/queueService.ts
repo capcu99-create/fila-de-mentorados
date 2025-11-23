@@ -192,7 +192,8 @@ export const queueService = {
 
           if (!response.ok) {
              const errorText = await response.text();
-             throw new Error(`${response.status} ${response.statusText} - ${errorText}`);
+             // Inclui os IDs usados na mensagem de erro para facilitar o debug
+             throw new Error(`${response.status} ${response.statusText} - ${errorText} \n[Conf: ${serviceId} | ${templateId}]`);
           }
           
           successCount++;
