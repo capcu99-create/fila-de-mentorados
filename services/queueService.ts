@@ -83,7 +83,8 @@ const sendEmailNotification = async (ticket: Ticket) => {
             to_name: "Mentor",
             student_name: ticket.studentName,
             message: ticket.reason,
-            availability: ticket.availability
+            availability: ticket.availability,
+            date: new Date().toLocaleString('pt-BR') // Adicionado data formatada
           }
         };
 
@@ -157,6 +158,38 @@ export const queueService = {
      const text = "✅ *TESTE DE NOTIFICAÇÃO*\n\nSe você recebeu isso, o sistema está funcionando!\n\n_Mentoria do Muzeira_";
      const url = `https://api.telegram.org/bot${TELEGRAM_CONFIG.BOT_TOKEN}/sendMessage?chat_id=${cleanId}&text=${encodeURIComponent(text)}&parse_mode=Markdown`;
      await fetch(url, { method: 'GET', mode: 'no-cors' });
+  },
+
+  sendTestEmail: async (config: { serviceId: string, templateId: string, publicKey: string }) => {
+    const { serviceId, templateId, publicKey } = config;
+    if (!serviceId || !templateId || !publicKey) throw new Error("Configuração incompleta.");
+
+    // Envia apenas um e-mail de teste para o primeiro mentor da lista para validar
+    const email = MENTOR_EMAILS[0];
+    
+    const payload = {
+      service_id: serviceId,
+      template_id: templateId,
+      user_id: publicKey,
+      template_params: {
+        to_email: email,
+        to_name: "Mentor (Teste)",
+        student_name: "Teste de Sistema",
+        message: "Este é um e-mail de verificação de configuração.",
+        availability: "Agora",
+        date: new Date().toLocaleString('pt-BR')
+      }
+    };
+
+    const response = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+
+    if (!response.ok) {
+      throw new Error(`Erro ao enviar: ${response.statusText}`);
+    }
   },
 
   // --- AUTHENTICATION ---

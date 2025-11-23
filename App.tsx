@@ -262,6 +262,16 @@ const App: React.FC = () => {
     } catch (e: any) { alert(e.message) }
   };
 
+  const handleEmailTest = async () => {
+    try {
+      if(!emailConfig.serviceId || !emailConfig.templateId || !emailConfig.publicKey) {
+        return alert("⚠️ Preencha todas as chaves de e-mail!");
+      }
+      await queueService.sendTestEmail(emailConfig);
+      alert("📧 E-mail de teste enviado! Verifique sua caixa de entrada.");
+    } catch (e: any) { alert(e.message) }
+  };
+
   const mentorsList = [
     { ...MENTORS.muzeira, isOnline: mentorStatuses.muzeira },
     { ...MENTORS.kayo, isOnline: mentorStatuses.kayo }
@@ -390,12 +400,20 @@ const App: React.FC = () => {
                         onChange={(e) => setEmailConfig({...emailConfig, publicKey: e.target.value})}
                         className="w-full bg-slate-800 border border-slate-600 rounded px-2 py-1 text-xs text-white focus:outline-none focus:border-orange-500"
                       />
-                      <button 
-                        onClick={handleEmailConfigSave}
-                        className="w-full py-1.5 bg-orange-600 hover:bg-orange-700 text-white text-xs font-bold rounded mt-1"
-                      >
-                        Salvar Configuração de Email
-                      </button>
+                      <div className="flex gap-2 mt-1">
+                        <button 
+                          onClick={handleEmailConfigSave}
+                          className="flex-1 py-1.5 bg-orange-600 hover:bg-orange-700 text-white text-xs font-bold rounded"
+                        >
+                          Salvar
+                        </button>
+                        <button 
+                          onClick={handleEmailTest}
+                          className="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-white text-xs font-bold rounded"
+                        >
+                          Testar Email
+                        </button>
+                      </div>
                       <a href="https://www.emailjs.com/" target="_blank" className="block text-center text-[10px] text-slate-500 hover:text-orange-400 mt-1">
                         Obter chaves gratuitamente
                       </a>
