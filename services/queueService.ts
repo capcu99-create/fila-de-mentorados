@@ -164,31 +164,46 @@ export const queueService = {
     const { serviceId, templateId, publicKey } = config;
     if (!serviceId || !templateId || !publicKey) throw new Error("Configuração incompleta.");
 
-    // Envia apenas um e-mail de teste para o primeiro mentor da lista para validar
-    const email = MENTOR_NOTIFICATION_EMAILS[0];
-    
-    const payload = {
-      service_id: serviceId,
-      template_id: templateId,
-      user_id: publicKey,
-      template_params: {
-        to_email: email,
-        to_name: "Mentor (Teste)",
-        student_name: "Teste de Sistema",
-        message: "Este é um e-mail de verificação de configuração.",
-        availability: "Agora",
-        date: new Date().toLocaleString('pt-BR')
-      }
-    };
+    let successCount = 0;
+    const errors: string[] = [];
 
-    const response = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    });
+    // Envia para TODOS os mentores da lista para garantir que quem estiver testando receba
+    for (const email of MENTOR_NOTIFICATION_EMAILS) {
+        const payload = {
+          service_id: serviceId,
+          template_id: templateId,
+          user_id: publicKey,
+          template_params: {
+            to_email: email,
+            to_name: "Mentor (Teste)",
+            student_name: "Teste de Sistema",
+            message: "Este é um e-mail de verificação de configuração.",
+            availability: "Agora",
+            date: new Date().toLocaleString('pt-BR')
+          }
+        };
 
-    if (!response.ok) {
-      throw new Error(`Erro ao enviar: ${response.statusText}`);
+        try {
+          const response = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+
+          if (!response.ok) {
+             const errorText = await response.text();
+             throw new Error(`${response.status} ${response.statusText} - ${errorText}`);
+          }
+          
+          successCount++;
+        } catch (err: any) {
+          console.error(`Erro ao enviar teste para ${email}:`, err);
+          errors.push(`${email}: ${err.message}`);
+        }
+    }
+
+    if (successCount === 0) {
+      throw new Error(`Falha total no envio:\n${errors.join('\n')}`);
     }
   },
 

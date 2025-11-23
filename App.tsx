@@ -46,11 +46,11 @@ const App: React.FC = () => {
   
   // Dev State (Email)
   const [showEmailConfig, setShowEmailConfig] = useState(false);
-  // PRE-FILLED credentials from user request
+  // PRE-FILLED credentials from user request (UPDATED)
   const [emailConfig, setEmailConfig] = useState({ 
-    serviceId: 'service_83s9pm8', 
-    templateId: 'template_xlweuw8', 
-    publicKey: 'crnFjILfhuTgiRywS' 
+    serviceId: 'service_72w890o', 
+    templateId: 'template_aghmd9q', 
+    publicKey: '08QOM5GgtbxferzXx' 
   });
 
   // Refs para controle de notificação
@@ -84,12 +84,8 @@ const App: React.FC = () => {
       const savedEmailConfig = localStorage.getItem('email_config');
       if (savedEmailConfig) {
         const parsed = JSON.parse(savedEmailConfig);
-        // Mantém os IDs padrão se o salvo estiver vazio
-        setEmailConfig({
-          serviceId: parsed.serviceId || 'service_83s9pm8',
-          templateId: parsed.templateId || 'template_xlweuw8',
-          publicKey: parsed.publicKey || 'crnFjILfhuTgiRywS'
-        });
+        // Mantém os IDs novos padrão se o salvo estiver vazio
+        if (parsed.serviceId) setEmailConfig(parsed);
       }
     }
   }, [role, loggedMentor.id]);
@@ -269,7 +265,14 @@ const App: React.FC = () => {
       localStorage.setItem('email_config', JSON.stringify(emailConfig));
       await queueService.saveEmailConfig(emailConfig);
       alert("✅ Configuração de E-mail Salva!");
-    } catch (e: any) { alert(e.message) }
+    } catch (e: any) { 
+      console.error(e);
+      if (e.message && (e.message.includes("permission_denied") || e.message.includes("PERMISSION_DENIED"))) {
+        setErrorMessage("ACESSO NEGADO AO SALVAR CONFIG");
+      } else {
+        alert(e.message);
+      }
+    }
   };
 
   const handleEmailTest = async () => {
@@ -278,8 +281,10 @@ const App: React.FC = () => {
         return alert("⚠️ Preencha todas as chaves de e-mail!");
       }
       await queueService.sendTestEmail(emailConfig);
-      alert("📧 E-mail de teste enviado! Verifique sua caixa de entrada.");
-    } catch (e: any) { alert(e.message) }
+      alert("📧 E-mail de teste enviado para os mentores! (Verifique Gmail e Hotmail)");
+    } catch (e: any) { 
+      alert(e.message);
+    }
   };
 
   const mentorsList = [
@@ -348,7 +353,6 @@ const App: React.FC = () => {
                 <span className="text-xs text-slate-400 uppercase tracking-wider mb-2 block">{loggedMentor.id === 'kayo' ? 'Suporte Técnico' : 'Mentor Principal'}</span>
                 
                 {/* --- DISPLAY DE DEBUG DO EMAIL --- */}
-                {/* Isso ajuda a confirmar se o mentor está logado com o email certo que está nas regras */}
                 <div className="bg-black/30 px-3 py-1 rounded text-[10px] text-slate-500 font-mono border border-slate-700/50 break-all max-w-full text-center">
                   Logado: {currentUserEmail || 'Desconhecido'}
                 </div>
@@ -440,7 +444,7 @@ const App: React.FC = () => {
                           onClick={handleEmailTest}
                           className="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-white text-xs font-bold rounded"
                         >
-                          Testar Email
+                          Testar
                         </button>
                       </div>
                       <a href="https://www.emailjs.com/" target="_blank" className="block text-center text-[10px] text-slate-500 hover:text-orange-400 mt-1">
