@@ -228,9 +228,9 @@ const App: React.FC = () => {
 
   const handleDevTest = async () => {
     try {
+      if(!devTelegramId) return alert("Preencha o ID primeiro!");
       await queueService.sendTestNotification(devTelegramId);
-      // Feedback visual simples pois no-cors não retorna sucesso real
-      alert("Comando enviado! Verifique o Telegram.");
+      alert("Comando enviado!\n\nSe não chegar:\n1. Verifique se mandou 'Oi' para o bot do sistema.\n2. Verifique se o ID está correto.");
     } catch (e: any) { alert(e.message) }
   };
 
@@ -398,10 +398,13 @@ const App: React.FC = () => {
            
            <div className="flex items-center gap-2 p-2 bg-slate-800 rounded-lg border border-slate-700">
              <span className="font-bold text-indigo-400">DEV TELEGRAM:</span>
+             <a href="https://t.me/userinfobot" target="_blank" rel="noopener noreferrer" className="text-[10px] text-indigo-400 hover:underline border border-indigo-500/30 px-1 rounded">
+                (Pegar ID)
+             </a>
              <input 
                type="text" 
-               placeholder="Seu Chat ID (pegue no @userinfobot)" 
-               className="bg-slate-900 border border-slate-600 rounded px-2 py-1 text-slate-300 w-48 focus:outline-none focus:border-indigo-500"
+               placeholder="Cole seu ID aqui" 
+               className="bg-slate-900 border border-slate-600 rounded px-2 py-1 text-slate-300 w-32 focus:outline-none focus:border-indigo-500"
                value={devTelegramId}
                onChange={(e) => setDevTelegramId(e.target.value)}
              />
@@ -417,7 +420,7 @@ const App: React.FC = () => {
                className="px-2 py-1 bg-green-600 hover:bg-green-700 text-white rounded transition-colors"
                title="Enviar mensagem de teste"
              >
-               Testar Envio
+               Testar
              </button>
            </div>
         </div>
