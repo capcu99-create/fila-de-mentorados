@@ -1,5 +1,6 @@
+
 import { initializeApp } from 'firebase/app';
-import { getDatabase, ref, onValue, push, update, set, remove } from 'firebase/database';
+import { getDatabase, ref, onValue, push, set, update, remove } from 'firebase/database';
 import { getAuth, signInAnonymously, signInWithEmailAndPassword, signOut, onAuthStateChanged, User } from 'firebase/auth';
 import { firebaseConfig, isFirebaseConfigured } from '../firebaseConfig';
 import { Ticket } from '../types';
@@ -19,7 +20,6 @@ if (isFirebaseConfigured()) {
     statusRef = ref(db, 'systemStatus/mentorOnline');
 
     // Monitoramento de Auth
-    // Se não houver usuário logado, loga como Anônimo automaticamente (Aluno)
     onAuthStateChanged(auth, (user) => {
       if (!user) {
         console.log("Nenhum usuário detectado. Entrando como Anônimo...");
@@ -46,8 +46,6 @@ export const queueService = {
   
   loginAdmin: async (username: string, pass: string) => {
     if (isFirebaseConfigured() && auth) {
-      // Truque para permitir login só com nome de usuário
-      // Se não tiver @, adiciona o domínio escolhido pelo usuário
       const email = username.includes('@') ? username : `${username}@mentor.com`;
       await signInWithEmailAndPassword(auth, email, pass);
     } else {
@@ -58,7 +56,6 @@ export const queueService = {
   logoutAdmin: async () => {
     if (isFirebaseConfigured() && auth) {
       await signOut(auth);
-      // O onAuthStateChanged vai rodar e logar como anônimo automaticamente
     }
   },
 
@@ -69,12 +66,15 @@ export const queueService = {
     return () => {};
   },
 
+  // Retorna o UID atual ou null
+  getCurrentUserId: (): string | null => {
+    return auth?.currentUser?.uid || null;
+  },
+
   // --- TICKETS ---
 
-  // Inscrever para receber atualizações em tempo real
   subscribe: (callback: (tickets: Ticket[]) => void, onError?: (error: Error) => void) => {
     if (isFirebaseConfigured() && ticketsRef) {
-      // MODO ONLINE: Escuta o Firebase
       const unsubscribe = onValue(
         ticketsRef, 
         (snapshot) => {
@@ -97,7 +97,6 @@ export const queueService = {
       );
       return unsubscribe;
     } else {
-      // MODO OFFLINE: Lê do LocalStorage
       const loadLocal = () => {
         const saved = localStorage.getItem('muzeira-tickets');
         if (saved) {
@@ -116,24 +115,29 @@ export const queueService = {
     }
   },
 
-  // Adicionar novo ticket
   addTicket: async (ticket: Ticket): Promise<string | null> => {
     if (isFirebaseConfigured() && ticketsRef) {
-      // MODO ONLINE
       try {
         const newTicketRef = push(ticketsRef);
         const newId = newTicketRef.key;
+        
+        // Adiciona o createdBy com o UID do usuário atual (se existir)
+        const ticketWithAuth = {
+          ...ticket,
+          id: newId,
+          createdBy: auth?.currentUser?.uid || 'anonymous'
+        };
+
         if (newId) {
-           await set(newTicketRef, { ...ticket, id: newId });
+           await set(newTicketRef, ticketWithAuth);
            return newId;
         }
       } catch (error) {
         console.error("Erro ao adicionar ticket:", error);
-        throw error; // Repassa o erro para a UI tratar
+        throw error;
       }
       return null;
     } else {
-      // MODO OFFLINE
       const saved = localStorage.getItem('muzeira-tickets');
       const currentTickets = saved ? JSON.parse(saved) : [];
       const newTickets = [ticket, ...currentTickets];
@@ -143,10 +147,8 @@ export const queueService = {
     }
   },
 
-  // Atualizar ticket existente
   updateTicket: async (id: string, updates: Partial<Ticket>) => {
     if (isFirebaseConfigured() && db) {
-      // MODO ONLINE
       try {
         const ticketRef = ref(db, `tickets/${id}`);
         await update(ticketRef, updates);
@@ -155,7 +157,6 @@ export const queueService = {
         throw error;
       }
     } else {
-      // MODO OFFLINE
       const saved = localStorage.getItem('muzeira-tickets');
       if (saved) {
         const tickets = JSON.parse(saved) as Ticket[];
@@ -166,17 +167,16 @@ export const queueService = {
     }
   },
 
-  // --- MENTOR STATUS (ONLINE/OFFLINE BUTTON) ---
+  // --- MENTOR STATUS ---
 
   subscribeToMentorStatus: (callback: (isOnline: boolean) => void) => {
     if (isFirebaseConfigured() && statusRef) {
       const unsubscribe = onValue(statusRef, (snapshot) => {
         const val = snapshot.val();
-        callback(!!val); // converte para boolean
+        callback(!!val);
       });
       return unsubscribe;
     } else {
-      // Offline fallback
       const loadStatus = () => {
         const saved = localStorage.getItem('muzeira-mentor-status');
         callback(saved === 'true');

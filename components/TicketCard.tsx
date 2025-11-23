@@ -5,6 +5,7 @@ import { Ticket, TicketStatus, UserRole } from '../types';
 interface TicketCardProps {
   ticket: Ticket;
   role: UserRole;
+  currentUserId?: string | null;
   onStatusChange: (id: string, status: TicketStatus) => void;
   onUpdateTicket: (id: string, updates: Partial<Ticket>) => void;
 }
@@ -12,6 +13,7 @@ interface TicketCardProps {
 export const TicketCard: React.FC<TicketCardProps> = ({
   ticket,
   role,
+  currentUserId,
   onStatusChange,
   onUpdateTicket,
 }) => {
@@ -21,6 +23,9 @@ export const TicketCard: React.FC<TicketCardProps> = ({
   const isPending = ticket.status === TicketStatus.PENDING;
   const isResolved = ticket.status === TicketStatus.RESOLVED;
   const isDiscarded = ticket.status === TicketStatus.DISCARDED;
+  
+  // Verifica se o usuário atual é o dono do ticket
+  const isOwner = currentUserId && ticket.createdBy === currentUserId;
 
   const handleSaveEdit = () => {
     onUpdateTicket(ticket.id, { availability: editAvailability });
@@ -52,6 +57,7 @@ export const TicketCard: React.FC<TicketCardProps> = ({
             </span>
           </div>
           
+          {/* Botões do MENTOR */}
           {role === UserRole.MENTOR && isPending && (
             <div className="flex gap-2">
               <button
@@ -75,7 +81,8 @@ export const TicketCard: React.FC<TicketCardProps> = ({
             </div>
           )}
 
-          {role === UserRole.STUDENT && isPending && (
+          {/* Botões do ALUNO (Só aparece se for dono do ticket) */}
+          {role === UserRole.STUDENT && isPending && isOwner && (
             <div className="flex gap-2">
               <button
                 onClick={() => setIsEditing(!isEditing)}

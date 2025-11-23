@@ -1,8 +1,10 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { Header } from './components/Header';
 import { RequestForm } from './components/RequestForm';
 import { TicketCard } from './components/TicketCard';
 import { LoginModal } from './components/LoginModal';
+import { RulesModal } from './components/RulesModal';
 import { LandingPage } from './components/LandingPage';
 import { Ticket, TicketStatus, UserRole } from './types';
 import { queueService } from './services/queueService';
@@ -17,6 +19,7 @@ const App: React.FC = () => {
   // UI State
   const [hasEntered, setHasEntered] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [showRulesModal, setShowRulesModal] = useState(false);
 
   // App State
   const [role, setRole] = useState<UserRole>(UserRole.STUDENT);
@@ -26,6 +29,7 @@ const App: React.FC = () => {
   
   // Auth State
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
 
   // Initial Load & Subscription
@@ -35,16 +39,22 @@ const App: React.FC = () => {
 
     // Monitora Auth Real do Firebase
     const unsubscribeAuth = queueService.subscribeToAuth((user) => {
-      if (user && !user.isAnonymous) {
-        // Se tem usuário e NÃO é anônimo, é o Mentor (Admin)
-        setIsAdminAuthenticated(true);
-        setRole(UserRole.MENTOR);
-      } else {
-        // Se é anônimo ou null, é aluno
-        setIsAdminAuthenticated(false);
-        if (role === UserRole.MENTOR) {
-          setRole(UserRole.STUDENT);
+      if (user) {
+        setCurrentUserId(user.uid);
+        if (!user.isAnonymous) {
+          // Se tem usuário e NÃO é anônimo, é o Mentor (Admin)
+          setIsAdminAuthenticated(true);
+          setRole(UserRole.MENTOR);
+        } else {
+          // Se é anônimo, é aluno
+          setIsAdminAuthenticated(false);
+          if (role === UserRole.MENTOR) {
+            setRole(UserRole.STUDENT);
+          }
         }
+      } else {
+        setCurrentUserId(null);
+        setIsAdminAuthenticated(false);
       }
     });
 
@@ -52,12 +62,15 @@ const App: React.FC = () => {
     const unsubscribeTickets = queueService.subscribe(
       (updatedTickets) => {
         setTickets(updatedTickets);
-        setErrorMessage(null);
+        // Se carregou com sucesso, limpa erro de permissão antigo
+        if (errorMessage?.includes("ACESSO NEGADO")) {
+           setErrorMessage(null);
+        }
       },
       (error) => {
         console.error("App: Erro ao carregar tickets", error);
-        if (error.message.includes("permission_denied")) {
-          setErrorMessage("ACESSO NEGADO: Você precisa estar logado ou as regras do banco bloqueiam a leitura.");
+        if (error.message.includes("permission_denied") || error.message.includes("PERMISSION_DENIED")) {
+          setErrorMessage("ACESSO NEGADO: As regras do banco bloquearam a leitura.");
         } else {
           setErrorMessage(`Erro de conexão: ${error.message}`);
         }
@@ -93,10 +106,19 @@ const App: React.FC = () => {
       window.removeEventListener('local-storage-update', handleLocalUpdate);
       window.removeEventListener('local-status-update', handleLocalStatusUpdate);
     };
-  }, [role]);
+  }, [role, errorMessage]);
 
   const handleEnterSystem = () => {
     setHasEntered(true);
+  };
+
+  const handleError = (error: any, context: string) => {
+    console.error(`Erro em ${context}:`, error);
+    if (error.message.includes("PERMISSION_DENIED") || error.message.includes("permission_denied")) {
+      setErrorMessage("ERRO DE PERMISSÃO: O Firebase bloqueou a ação.");
+    } else {
+      alert(`Erro: ${error.message}`);
+    }
   };
 
   const handleCreateTicket = useCallback(async (name: string, reason: string, availability: string) => {
@@ -105,6 +127,7 @@ const App: React.FC = () => {
         ? crypto.randomUUID() 
         : Math.random().toString(36).substring(2) + Date.now().toString(36);
 
+      // Note: createdBy será adicionado pelo queueService
       const newTicket: Ticket = {
         id: tempId, 
         studentName: name,
@@ -116,11 +139,7 @@ const App: React.FC = () => {
 
       await queueService.addTicket(newTicket);
     } catch (error: any) {
-      if (error.message.includes("PERMISSION_DENIED")) {
-        alert("Erro de Permissão: O banco de dados não permitiu criar o ticket. Verifique as Regras do Firebase.");
-      } else {
-        alert("Erro ao criar ticket: " + error.message);
-      }
+      handleError(error, "criar ticket");
     }
   }, []);
 
@@ -128,7 +147,7 @@ const App: React.FC = () => {
     try {
       await queueService.updateTicket(id, { status });
     } catch (error: any) {
-      alert("Erro ao atualizar status (apenas Admin pode fazer isso): " + error.message);
+      handleError(error, "mudar status");
     }
   };
 
@@ -136,7 +155,7 @@ const App: React.FC = () => {
     try {
       await queueService.updateTicket(id, updates);
     } catch (error: any) {
-      alert("Erro ao editar ticket: " + error.message);
+      handleError(error, "atualizar ticket");
     }
   };
 
@@ -164,7 +183,6 @@ const App: React.FC = () => {
   const handleLogout = async () => {
     try {
       await queueService.logoutAdmin();
-      // O estado será atualizado automaticamente pelo listener unsubscribeAuth
     } catch (e) {
       console.error("Erro ao sair", e);
     }
@@ -174,7 +192,7 @@ const App: React.FC = () => {
     try {
       await queueService.setMentorStatus(!mentorAvailable);
     } catch (error: any) {
-       alert("Erro ao mudar status: " + error.message);
+       handleError(error, "mudar status mentor");
     }
   };
 
@@ -188,8 +206,19 @@ const App: React.FC = () => {
   return (
     <div className="min-h-screen bg-[#0b1120] text-slate-200 pb-20 animate-[fadeIn_0.5s_ease-out]">
       {errorMessage && (
-        <div className="bg-red-600 text-white text-center px-4 py-3 font-bold text-sm sticky top-0 z-[60]">
-          ⚠️ {errorMessage}
+        <div className="bg-red-600/90 backdrop-blur-md text-white px-4 py-3 font-bold text-sm sticky top-0 z-[60] flex justify-between items-center shadow-lg">
+          <div className="flex items-center gap-2">
+             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+            </svg>
+            {errorMessage}
+          </div>
+          <button 
+            onClick={() => setShowRulesModal(true)}
+            className="bg-white text-red-600 px-3 py-1 rounded text-xs uppercase tracking-wide font-extrabold hover:bg-slate-100 transition-colors"
+          >
+            Corrigir Permissões
+          </button>
         </div>
       )}
       
@@ -211,6 +240,11 @@ const App: React.FC = () => {
         isOpen={isLoginModalOpen} 
         onClose={() => setIsLoginModalOpen(false)}
         onLogin={handleLogin}
+      />
+
+      <RulesModal 
+        isOpen={showRulesModal}
+        onClose={() => setShowRulesModal(false)}
       />
 
       <main className="max-w-5xl mx-auto px-4 pt-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -275,7 +309,7 @@ const App: React.FC = () => {
           <div className="hidden lg:block bg-indigo-900/20 rounded-2xl p-6 border border-indigo-500/20">
              <h3 className="text-indigo-300 font-semibold mb-2">Dica do Muzeira</h3>
              <p className="text-indigo-200/70 text-sm">
-               Verifique as regras de segurança no Console do Firebase se tiver problemas de permissão.
+               Se tiver problemas para editar ou concluir tickets, clique no botão vermelho "Corrigir Permissões" no topo quando aparecer o erro.
              </p>
           </div>
         </div>
@@ -310,6 +344,7 @@ const App: React.FC = () => {
                     key={ticket.id} 
                     ticket={ticket} 
                     role={role}
+                    currentUserId={currentUserId}
                     onStatusChange={handleStatusChange}
                     onUpdateTicket={handleUpdateTicket}
                   />
@@ -327,6 +362,7 @@ const App: React.FC = () => {
                     key={ticket.id} 
                     ticket={ticket} 
                     role={role}
+                    currentUserId={currentUserId}
                     onStatusChange={handleStatusChange}
                     onUpdateTicket={handleUpdateTicket}
                   />

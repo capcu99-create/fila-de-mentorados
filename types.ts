@@ -19,6 +19,7 @@ export interface Ticket {
   availability: string;
   status: TicketStatus;
   createdAt: number;
+  createdBy?: string; // ID do usuário que criou o ticket (Firebase UID)
   aiData?: AITags;
 }
 
