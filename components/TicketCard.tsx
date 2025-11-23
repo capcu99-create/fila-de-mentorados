@@ -25,7 +25,8 @@ export const TicketCard: React.FC<TicketCardProps> = ({
   const isDiscarded = ticket.status === TicketStatus.DISCARDED;
   
   // Verifica se o usuário atual é o dono do ticket
-  const isOwner = currentUserId && ticket.createdBy === currentUserId;
+  // Robust check: ensure strings exist and match
+  const isOwner = !!(currentUserId && ticket.createdBy && ticket.createdBy === currentUserId);
 
   const handleSaveEdit = () => {
     onUpdateTicket(ticket.id, { availability: editAvailability });

@@ -71,6 +71,7 @@ const App: React.FC = () => {
         console.error("App: Erro ao carregar tickets", error);
         if (error.message.includes("permission_denied") || error.message.includes("PERMISSION_DENIED")) {
           setErrorMessage("ACESSO NEGADO: As regras do banco bloquearam a leitura.");
+          setShowRulesModal(true); // Abre modal automaticamente se falhar leitura
         } else {
           setErrorMessage(`Erro de conexão: ${error.message}`);
         }
@@ -114,10 +115,13 @@ const App: React.FC = () => {
 
   const handleError = (error: any, context: string) => {
     console.error(`Erro em ${context}:`, error);
-    if (error.message.includes("PERMISSION_DENIED") || error.message.includes("permission_denied")) {
+    const msg = error.message || error.toString();
+    
+    if (msg.includes("PERMISSION_DENIED") || msg.includes("permission_denied")) {
       setErrorMessage("ERRO DE PERMISSÃO: O Firebase bloqueou a ação.");
+      setShowRulesModal(true); // Abre modal automaticamente se falhar escrita
     } else {
-      alert(`Erro: ${error.message}`);
+      alert(`Erro: ${msg}`);
     }
   };
 
@@ -206,7 +210,7 @@ const App: React.FC = () => {
   return (
     <div className="min-h-screen bg-[#0b1120] text-slate-200 pb-20 animate-[fadeIn_0.5s_ease-out]">
       {errorMessage && (
-        <div className="bg-red-600/90 backdrop-blur-md text-white px-4 py-3 font-bold text-sm sticky top-0 z-[60] flex justify-between items-center shadow-lg">
+        <div className="bg-red-600/90 backdrop-blur-md text-white px-4 py-3 font-bold text-sm sticky top-0 z-[60] flex justify-between items-center shadow-lg animate-pulse">
           <div className="flex items-center gap-2">
              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
               <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
@@ -309,7 +313,7 @@ const App: React.FC = () => {
           <div className="hidden lg:block bg-indigo-900/20 rounded-2xl p-6 border border-indigo-500/20">
              <h3 className="text-indigo-300 font-semibold mb-2">Dica do Muzeira</h3>
              <p className="text-indigo-200/70 text-sm">
-               Se tiver problemas para editar ou concluir tickets, clique no botão vermelho "Corrigir Permissões" no topo quando aparecer o erro.
+               Se tiver problemas para editar ou concluir tickets, verifique se a mensagem vermelha de "Erro de Permissão" aparece e clique em "Corrigir".
              </p>
           </div>
         </div>

@@ -37,7 +37,7 @@ export const RulesModal: React.FC<RulesModalProps> = ({ isOpen, onClose }) => {
             <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
             </svg>
-            Corrigir Permissões do Firebase
+            ⚠️ Ação Necessária no Firebase
           </h2>
           <button onClick={onClose} className="text-slate-400 hover:text-white">
             <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -47,36 +47,48 @@ export const RulesModal: React.FC<RulesModalProps> = ({ isOpen, onClose }) => {
         </div>
 
         <div className="space-y-4 overflow-y-auto pr-2">
+          <div className="bg-red-500/10 border border-red-500/20 p-3 rounded-lg">
+             <p className="text-red-300 text-sm font-semibold">
+               Seus botões de "Concluir" ou "Cancelar" não estão funcionando porque o Firebase bloqueou a edição.
+             </p>
+          </div>
+
           <p className="text-slate-300 text-sm">
-            O erro <strong>PERMISSION_DENIED</strong> ocorre porque o banco de dados está bloqueando as edições.
-            Para consertar, vá no <strong>Firebase Console &gt; Realtime Database &gt; Regras</strong> e cole o código abaixo:
+            Para consertar, você precisa copiar o código abaixo e colar na aba <strong>Regras (Rules)</strong> do seu Realtime Database.
           </p>
 
-          <div className="relative">
-            <pre className="bg-slate-950 p-4 rounded-lg border border-slate-800 text-green-400 text-xs font-mono overflow-x-auto">
+          <div className="relative group">
+            <pre className="bg-slate-950 p-4 rounded-lg border border-slate-800 text-green-400 text-xs font-mono overflow-x-auto shadow-inner">
               {rules}
             </pre>
             <button 
-              onClick={() => navigator.clipboard.writeText(rules)}
-              className="absolute top-2 right-2 bg-slate-800 hover:bg-slate-700 text-white text-xs px-3 py-1.5 rounded transition-colors border border-slate-600"
+              onClick={() => {
+                navigator.clipboard.writeText(rules);
+                alert("Código copiado! Cole no painel do Firebase.");
+              }}
+              className="absolute top-2 right-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs px-3 py-1.5 rounded transition-colors border border-indigo-500 shadow-lg"
             >
-              Copiar
+              Copiar Código
             </button>
           </div>
-
-          <div className="bg-amber-500/10 border border-amber-500/20 p-3 rounded-lg">
-             <p className="text-amber-200 text-xs">
-               <strong>Nota:</strong> Essas regras permitem que qualquer um leia a fila, mas apenas o <strong>Dono do Ticket</strong> ou o <strong>Mentor (@mentor.com)</strong> possam alterar os dados.
-             </p>
+          
+          <div className="text-xs text-slate-400 space-y-1">
+             <p>Passo a passo rápido:</p>
+             <ol className="list-decimal ml-4 space-y-1">
+               <li>Vá para <a href="https://console.firebase.google.com/" target="_blank" className="text-indigo-400 underline">console.firebase.google.com</a></li>
+               <li>Entre no seu projeto e clique em <strong>Realtime Database</strong> no menu lateral.</li>
+               <li>Clique na aba <strong>Regras (Rules)</strong> no topo.</li>
+               <li>Apague tudo que estiver lá, cole o código acima e clique em <strong>Publicar</strong>.</li>
+             </ol>
           </div>
         </div>
 
         <div className="mt-6 pt-4 border-t border-slate-800 flex justify-end">
           <button 
             onClick={onClose}
-            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium transition-colors"
+            className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg font-medium transition-colors"
           >
-            Entendi, vou atualizar
+            Fechar Janela
           </button>
         </div>
       </div>
