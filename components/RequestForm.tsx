@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 
 interface RequestFormProps {
@@ -39,9 +40,8 @@ export const RequestForm: React.FC<RequestFormProps> = ({ onSubmit }) => {
 
   return (
     <div className="bg-slate-800/50 rounded-2xl p-6 border border-slate-700 shadow-xl backdrop-blur-sm">
-      <h2 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
-        <span className="w-2 h-8 bg-indigo-500 rounded-full inline-block"></span>
-        Entrar na Fila
+      <h2 className="text-xl font-semibold text-white mb-4 flex items-center gap-3">
+        Solicitar Mentoria
       </h2>
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>

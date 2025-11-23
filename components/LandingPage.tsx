@@ -33,7 +33,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnter, mentors }) =>
             Fila de Atendimento
           </h2>
           <h1 className="text-4xl md:text-6xl font-black tracking-tight text-white drop-shadow-lg">
-            MENTORIA <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-purple-400 to-cyan-400">MUZEIRA</span>
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-purple-500 to-indigo-400">MENTORIA DO MUZEIRA</span>
           </h1>
         </div>
 
