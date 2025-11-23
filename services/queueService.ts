@@ -40,9 +40,12 @@ _Corre lá pra atender!_ 🚀
     // Envia para todos os IDs encontrados
     for (const chatId of chatIds) {
       try {
+        // OBS: mode 'no-cors' permite enviar a requisição sem o navegador bloquear, 
+        // mas não permite ler a resposta (dará erro 0/opaque, mas o Telegram recebe).
         const url = `https://api.telegram.org/bot${TELEGRAM_CONFIG.BOT_TOKEN}/sendMessage`;
         await fetch(url, {
           method: 'POST',
+          mode: 'no-cors', 
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             chat_id: chatId,
@@ -50,6 +53,7 @@ _Corre lá pra atender!_ 🚀
             parse_mode: 'Markdown'
           })
         });
+        console.log(`Tentativa de envio para ${chatId} realizada.`);
       } catch (error) {
         console.error(`Erro ao enviar Telegram para ${chatId}:`, error);
       }
@@ -91,39 +95,40 @@ export const queueService = {
 
   // --- TELEGRAM SETUP ---
   
-  connectTelegram: async (): Promise<string> => {
-    if (!TELEGRAM_CONFIG.BOT_TOKEN) throw new Error("Token não configurado.");
+  // Salva o ID manualmente (método infalível)
+  registerTelegramId: async (chatId: string, name: string) => {
+    if (!isFirebaseConfigured() || !db) throw new Error("Banco de dados offline.");
+    
+    // Remove espaços e garante que é numérico
+    const cleanId = chatId.trim().replace(/\s/g, '');
+    if (!/^-?\d+$/.test(cleanId)) throw new Error("ID inválido. Deve conter apenas números.");
 
-    // 1. Busca as últimas mensagens enviadas para o bot
-    const response = await fetch(`https://api.telegram.org/bot${TELEGRAM_CONFIG.BOT_TOKEN}/getUpdates`);
-    const data = await response.json();
+    await update(ref(db, `systemStatus/telegramIds`), {
+      [cleanId]: { 
+        name: name, 
+        connectedAt: Date.now() 
+      }
+    });
+  },
 
-    if (!data.ok) throw new Error("Falha ao conectar com Telegram API");
+  // Envia notificação de teste
+  sendTestNotification: async (chatId: string) => {
+     const cleanId = chatId.trim();
+     if (!cleanId) throw new Error("ID vazio.");
 
-    const updates = data.result;
-    if (!updates || updates.length === 0) {
-      throw new Error("Não encontrei sua mensagem. Mande um 'Oi' para o bot e tente novamente!");
-    }
-
-    // Pega a última mensagem
-    const lastUpdate = updates[updates.length - 1];
-    const chatId = lastUpdate.message?.chat?.id;
-    const firstName = lastUpdate.message?.from?.first_name;
-
-    if (!chatId) throw new Error("ID de chat inválido.");
-
-    // Salva no Firebase para persistência
-    if (isFirebaseConfigured() && db) {
-      await update(ref(db, `systemStatus/telegramIds`), {
-        [chatId]: { 
-          name: firstName || 'Mentor', 
-          connectedAt: Date.now() 
-        }
+     const url = `https://api.telegram.org/bot${TELEGRAM_CONFIG.BOT_TOKEN}/sendMessage`;
+     
+     // Usamos no-cors para evitar bloqueio do navegador
+     await fetch(url, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chat_id: cleanId,
+          text: "✅ *TESTE DE NOTIFICAÇÃO*\n\nSe você recebeu isso, o sistema está funcionando!\n\n_Mentoria do Muzeira_",
+          parse_mode: 'Markdown'
+        })
       });
-      return firstName || 'Mentor';
-    } else {
-      throw new Error("Banco de dados offline.");
-    }
   },
 
   // --- AUTHENTICATION ---

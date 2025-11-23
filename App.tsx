@@ -40,6 +40,9 @@ const App: React.FC = () => {
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [isSystemOnline, setIsSystemOnline] = useState(false);
   
+  // Dev State
+  const [devTelegramId, setDevTelegramId] = useState('');
+
   // Refs para controle de notificação
   const prevPendingCountRef = useRef(0);
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -201,19 +204,36 @@ const App: React.FC = () => {
   };
 
   const handleConnectTelegram = async () => {
-    const confirmed = window.confirm(
-      "Para conectar:\n\n1. Abra o Telegram e mande um 'Oi' para o seu bot.\n2. Volte aqui e clique em OK."
-    );
+    const id = prompt("Digite seu ID do Telegram:\n\n1. Abra o bot @userinfobot no Telegram\n2. Copie o número (Id)\n3. Cole aqui:");
     
-    if (confirmed) {
+    if (id) {
       try {
-        const name = await queueService.connectTelegram();
-        alert(`Sucesso! Conectado como ${name}. Você receberá avisos no Telegram.`);
+        await queueService.registerTelegramId(id, loggedMentor.name);
+        alert("ID salvo! Vamos fazer um teste...");
+        await queueService.sendTestNotification(id);
+        alert("Mensagem de teste enviada! Verifique seu Telegram.");
       } catch (e: any) {
         alert(`Erro: ${e.message}`);
       }
     }
   };
+
+  // Funções da Área Dev
+  const handleDevSave = async () => {
+    try {
+       await queueService.registerTelegramId(devTelegramId, "Dev Tester");
+       alert("ID Salvo!");
+    } catch (e: any) { alert(e.message) }
+  };
+
+  const handleDevTest = async () => {
+    try {
+      await queueService.sendTestNotification(devTelegramId);
+      // Feedback visual simples pois no-cors não retorna sucesso real
+      alert("Comando enviado! Verifique o Telegram.");
+    } catch (e: any) { alert(e.message) }
+  };
+
 
   const mentorsList = [
     { ...MENTORS.muzeira, isOnline: mentorStatuses.muzeira },
@@ -229,7 +249,7 @@ const App: React.FC = () => {
   const isCurrentMentorOnline = loggedMentor.id === 'kayo' ? mentorStatuses.kayo : mentorStatuses.muzeira;
 
   return (
-    <div className="min-h-screen bg-[#0b1120] text-slate-200 pb-20 animate-[fadeIn_0.5s_ease-out]">
+    <div className="min-h-screen bg-[#0b1120] text-slate-200 pb-20 animate-[fadeIn_0.5s_ease-out] flex flex-col">
       {errorMessage && (
         <div className="bg-red-600/90 backdrop-blur-md text-white px-4 py-3 font-bold text-sm sticky top-0 z-[60] flex justify-center items-center gap-2 shadow-lg animate-pulse">
           {errorMessage}
@@ -252,7 +272,7 @@ const App: React.FC = () => {
         onLogin={(u, p) => queueService.loginAdmin(u, p).then(() => true)}
       />
 
-      <main className="max-w-5xl mx-auto px-4 pt-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <main className="max-w-5xl mx-auto px-4 pt-8 grid grid-cols-1 lg:grid-cols-3 gap-8 flex-grow">
         <div className="lg:col-span-1 space-y-6">
           {role === UserRole.STUDENT ? (
             <RequestForm onSubmit={handleCreateTicket} />
@@ -286,7 +306,7 @@ const App: React.FC = () => {
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.48-.94-2.4-1.54-1.06-.7-.37-1.09.23-1.7.15-.15 2.81-2.57 2.86-2.79.01-.03.01-.13-.05-.18-.06-.05-.16-.03-.23-.02-.1.02-1.63 1.03-4.6 3.03-.43.3-.82.44-1.17.43-.38-.01-1.12-.21-1.67-.38-.68-.21-1.22-.32-1.17-.67.02-.18.28-.36.75-.55 2.96-1.29 4.94-2.14 5.93-2.55 2.83-1.17 3.41-1.37 3.8-1.38.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06.01.24 0 .24z"/>
                   </svg>
-                  Conectar Telegram
+                  Configurar Telegram
                 </button>
               </div>
 
@@ -370,6 +390,38 @@ const App: React.FC = () => {
           )}
         </div>
       </main>
+
+      {/* RODAPÉ DE DESENVOLVEDOR (TESTE RÁPIDO) */}
+      <footer className="mt-12 py-6 border-t border-slate-800 bg-slate-900/50 backdrop-blur">
+        <div className="max-w-5xl mx-auto px-4 flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-slate-500">
+           <div>&copy; 2024 Mentoria do Muzeira - Sistema de Filas v1.1</div>
+           
+           <div className="flex items-center gap-2 p-2 bg-slate-800 rounded-lg border border-slate-700">
+             <span className="font-bold text-indigo-400">DEV TELEGRAM:</span>
+             <input 
+               type="text" 
+               placeholder="Seu Chat ID (pegue no @userinfobot)" 
+               className="bg-slate-900 border border-slate-600 rounded px-2 py-1 text-slate-300 w-48 focus:outline-none focus:border-indigo-500"
+               value={devTelegramId}
+               onChange={(e) => setDevTelegramId(e.target.value)}
+             />
+             <button 
+               onClick={handleDevSave}
+               className="px-2 py-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded transition-colors"
+               title="Salvar ID no Banco"
+             >
+               Salvar
+             </button>
+             <button 
+               onClick={handleDevTest}
+               className="px-2 py-1 bg-green-600 hover:bg-green-700 text-white rounded transition-colors"
+               title="Enviar mensagem de teste"
+             >
+               Testar Envio
+             </button>
+           </div>
+        </div>
+      </footer>
     </div>
   );
 };
