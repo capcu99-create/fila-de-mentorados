@@ -45,7 +45,12 @@ const App: React.FC = () => {
   
   // Dev State (Email)
   const [showEmailConfig, setShowEmailConfig] = useState(false);
-  const [emailConfig, setEmailConfig] = useState({ serviceId: '', templateId: '', publicKey: '' });
+  // PRE-FILLED credentials from user request
+  const [emailConfig, setEmailConfig] = useState({ 
+    serviceId: 'service_83s9pm8', 
+    templateId: 'template_1s8tsxl', 
+    publicKey: 'crnFjILfhuTgiRywS' 
+  });
 
   // Refs para controle de notificação
   const prevPendingCountRef = useRef(0);
@@ -76,7 +81,13 @@ const App: React.FC = () => {
       // Email Config (Geral para o sistema)
       const savedEmailConfig = localStorage.getItem('email_config');
       if (savedEmailConfig) {
-        setEmailConfig(JSON.parse(savedEmailConfig));
+        const parsed = JSON.parse(savedEmailConfig);
+        // Mantém os IDs padrão se o salvo estiver vazio
+        setEmailConfig({
+          serviceId: parsed.serviceId || 'service_83s9pm8',
+          templateId: parsed.templateId || 'template_1s8tsxl',
+          publicKey: parsed.publicKey || 'crnFjILfhuTgiRywS'
+        });
       }
     }
   }, [role, loggedMentor.id]);
@@ -360,21 +371,21 @@ const App: React.FC = () => {
                     <div className="space-y-2 animate-[fadeIn_0.3s_ease-out]">
                       <input 
                         type="text" 
-                        placeholder="Service ID"
+                        placeholder="Service ID (ex: service_xxxx)"
                         value={emailConfig.serviceId}
                         onChange={(e) => setEmailConfig({...emailConfig, serviceId: e.target.value})}
                         className="w-full bg-slate-800 border border-slate-600 rounded px-2 py-1 text-xs text-white focus:outline-none focus:border-orange-500"
                       />
                       <input 
                         type="text" 
-                        placeholder="Template ID"
+                        placeholder="Template ID (ex: template_xxxx)"
                         value={emailConfig.templateId}
                         onChange={(e) => setEmailConfig({...emailConfig, templateId: e.target.value})}
                         className="w-full bg-slate-800 border border-slate-600 rounded px-2 py-1 text-xs text-white focus:outline-none focus:border-orange-500"
                       />
                       <input 
                         type="text" 
-                        placeholder="Public Key"
+                        placeholder="Public Key (ex: user_xxxx)"
                         value={emailConfig.publicKey}
                         onChange={(e) => setEmailConfig({...emailConfig, publicKey: e.target.value})}
                         className="w-full bg-slate-800 border border-slate-600 rounded px-2 py-1 text-xs text-white focus:outline-none focus:border-orange-500"
@@ -385,8 +396,8 @@ const App: React.FC = () => {
                       >
                         Salvar Configuração de Email
                       </button>
-                      <a href="https://www.emailjs.com/docs/tutorial/creating-contact-form/" target="_blank" className="block text-center text-[10px] text-slate-500 hover:text-orange-400 mt-1">
-                        Como pegar essas chaves?
+                      <a href="https://www.emailjs.com/" target="_blank" className="block text-center text-[10px] text-slate-500 hover:text-orange-400 mt-1">
+                        Obter chaves gratuitamente
                       </a>
                     </div>
                   )}
@@ -480,7 +491,7 @@ const App: React.FC = () => {
       <footer className="mt-12 py-6 border-t border-slate-800 bg-slate-900/50 backdrop-blur">
         <div className="max-w-5xl mx-auto px-4 flex justify-center text-xs text-slate-500">
            <div className="flex items-center gap-2">
-             <span>&copy; 2024 Mentoria do Muzeira v1.1</span>
+             <span>&copy; 2024 Mentoria do Muzeira v1.2</span>
              <span className="text-slate-700">|</span>
              <span>Sistema de Filas</span>
            </div>

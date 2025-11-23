@@ -1,6 +1,6 @@
 
 import { initializeApp } from 'firebase/app';
-import { getDatabase, ref, onValue, push, set, update, remove, get } from 'firebase/database';
+import { getDatabase, ref, onValue, push, set, update, get } from 'firebase/database';
 import { getAuth, signInAnonymously, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged, User } from 'firebase/auth';
 import { firebaseConfig, isFirebaseConfigured } from '../firebaseConfig';
 import { Ticket } from '../types';
@@ -66,9 +66,12 @@ const sendEmailNotification = async (ticket: Ticket) => {
     const config = snapshot.val();
     const { serviceId, templateId, publicKey } = config;
 
-    if (!serviceId || !templateId || !publicKey) return;
+    if (!serviceId || !templateId || !publicKey) {
+      console.log("EmailJS não configurado no painel.");
+      return;
+    }
 
-    // Envia para cada mentor
+    // Envia para cada mentor na lista
     for (const email of MENTOR_EMAILS) {
       try {
         const payload = {
@@ -76,7 +79,7 @@ const sendEmailNotification = async (ticket: Ticket) => {
           template_id: templateId,
           user_id: publicKey,
           template_params: {
-            to_email: email, // Variável que deve existir no seu template do EmailJS
+            to_email: email, // Variável que deve existir no template do EmailJS
             to_name: "Mentor",
             student_name: ticket.studentName,
             message: ticket.reason,
@@ -161,31 +164,44 @@ export const queueService = {
   loginAdmin: async (username: string, pass: string) => {
     if (isFirebaseConfigured() && auth) {
       let email = username;
-      // Ajuste para permitir login com os emails novos se o usuario digitar apenas o nome
+      // Normaliza o input do usuário para os e-mails corretos
       if (!email.includes('@')) {
-         if (username.toLowerCase().includes('muzeira')) email = 'muriloempresa2022@hotmail.com';
-         else if (username.toLowerCase().includes('kayo') || username.toLowerCase().includes('tocha')) email = 'kayoprimo77@gmail.com';
-         else email = `${username}@mentor.com`;
+         const userLower = username.toLowerCase();
+         if (userLower.includes('muzeira') || userLower.includes('murilo')) {
+            email = 'muriloempresa2022@hotmail.com';
+         } else if (userLower.includes('kayo') || userLower.includes('tocha')) {
+            email = 'kayoprimo77@gmail.com';
+         } else {
+            email = `${username}@mentor.com`;
+         }
       }
       
       try {
         await signInWithEmailAndPassword(auth, email, pass);
       } catch (error: any) {
-        // Se o usuário não existir (user-not-found) ou credencial inválida (novo SDK), tenta criar
-        if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential' || error.code === 'auth/invalid-login-credentials') {
+        // Lógica de Auto-Registro: Se falhar o login, tenta criar a conta
+        console.log("Login falhou, tentando criar conta...", error.code);
+        
+        // Lista de códigos de erro que indicam que o usuário não existe ou credencial inválida (Firebase muda isso as vezes)
+        const shouldCreate = 
+            error.code === 'auth/user-not-found' || 
+            error.code === 'auth/invalid-credential' || 
+            error.code === 'auth/invalid-login-credentials' ||
+            error.code === 'auth/wrong-password'; // Cuidado: wrong-password em conta existente falha na criação, mas tentamos o catch abaixo
+
+        if (shouldCreate) {
            try {
-             // Tenta criar a conta automaticamente
              await createUserWithEmailAndPassword(auth, email, pass);
-             // Se criou com sucesso, já estará logado
+             // Se criou, sucesso, já está logado
            } catch (createError: any) {
              console.error("Erro ao criar usuário:", createError);
              if (createError.code === 'auth/email-already-in-use') {
-                throw new Error("Senha incorreta (Conta já existe).");
+                throw new Error("Senha incorreta.");
              }
              if (createError.code === 'auth/weak-password') {
                 throw new Error("A senha precisa ter pelo menos 6 caracteres.");
              }
-             throw new Error("Erro ao criar conta de mentor: " + createError.message);
+             throw new Error("Erro de acesso. Verifique suas credenciais.");
            }
         } else {
           throw error;
@@ -249,8 +265,11 @@ export const queueService = {
          await set(newTicketRef, ticketWithAuth);
          
          // 🔥 DISPAROS DE NOTIFICAÇÃO (Telegram + Email)
-         sendTelegramNotification(ticket).catch(console.error);
-         sendEmailNotification(ticket).catch(console.error);
+         // Usamos Promise.allSettled para não travar se um falhar
+         Promise.allSettled([
+            sendTelegramNotification(ticket),
+            sendEmailNotification(ticket)
+         ]);
 
          return newId;
       }
