@@ -1,4 +1,3 @@
-
 import React from 'react';
 
 interface LandingPageProps {
@@ -83,25 +82,25 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnter, avatarUrl, is
         {/* Footer Stats */}
         <div className="mt-16 flex justify-center text-center border-t border-slate-800/50 pt-8 w-full max-w-md">
            <div className="flex flex-col items-center">
-             <p className={`text-2xl font-bold ${isOnline ? 'text-green-400' : 'text-slate-500'}`}>
+             <p className={`text-2xl font-bold transition-colors duration-500 ${isOnline ? 'text-green-400' : 'text-slate-500'}`}>
                {isOnline ? 'ONLINE' : 'OFFLINE'}
              </p>
              <p className="text-xs text-slate-500 uppercase tracking-wider font-mono">Status do Mentor</p>
            </div>
         </div>
-      </div>
 
-      <style>{`
-        @keyframes gradient {
-          0% { background-position: 0% 50%; }
-          50% { background-position: 100% 50%; }
-          100% { background-position: 0% 50%; }
-        }
-        @keyframes fadeIn {
-          from { opacity: 0; transform: translateY(20px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-      `}</style>
+        <style>{`
+          @keyframes gradient {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+          }
+          @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+          }
+        `}</style>
+      </div>
     </div>
   );
 };

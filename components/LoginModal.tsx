@@ -28,14 +28,8 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLogin
       }
     } catch (err: any) {
       console.error(err);
-      // Tratamento de erros comuns do Firebase para ajudar o usuário
-      if (err.code === 'auth/invalid-credential' || err.code === 'auth/user-not-found') {
-         setError('Usuário ou senha incorretos. Verifique se o usuário "muzeira@mentor.com" existe no Firebase.');
-      } else if (err.code === 'auth/too-many-requests') {
-         setError('Muitas tentativas. Aguarde um pouco e tente novamente.');
-      } else {
-         setError('Erro ao entrar. Verifique o console para mais detalhes.');
-      }
+      // Mensagens genéricas para segurança
+      setError('Credenciais incorretas.');
     } finally {
       setIsLoading(false);
     }
@@ -49,7 +43,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLogin
             <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
             </svg>
-            Acesso do Mentor
+            Acesso Restrito
           </h2>
           <button onClick={onClose} className="text-slate-400 hover:text-white transition-colors">
             <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -60,25 +54,22 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLogin
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {error && (
-            <div className="bg-red-500/10 border border-red-500/20 text-red-400 text-xs p-3 rounded-lg">
+            <div className="bg-red-500/10 border border-red-500/20 text-red-400 text-xs p-3 rounded-lg text-center">
               {error}
             </div>
           )}
           
           <div>
-            <label className="block text-sm font-medium text-slate-400 mb-1">Usuário</label>
+            <label className="block text-sm font-medium text-slate-400 mb-1">ID de Acesso</label>
             <input
               type="text"
               value={username}
               onChange={e => setUsername(e.target.value)}
               className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2.5 text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all"
-              placeholder="Ex: muzeira"
+              placeholder=""
               autoFocus
               required
             />
-             <p className="text-[10px] text-slate-500 mt-1 ml-1">
-              O sistema tentará logar como <span className="font-mono text-slate-400">{username || 'muzeira'}@mentor.com</span>
-            </p>
           </div>
           
           <div>
@@ -88,7 +79,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLogin
               value={pass}
               onChange={e => setPass(e.target.value)}
               className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2.5 text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all"
-              placeholder="••••••••"
+              placeholder=""
               required
             />
           </div>
