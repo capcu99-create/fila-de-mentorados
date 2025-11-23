@@ -30,12 +30,12 @@ export const Header: React.FC<HeaderProps> = ({
 }) => {
   return (
     <header className="bg-slate-900 border-b border-slate-800 sticky top-0 z-50 backdrop-blur-md bg-opacity-80">
-      <div className="max-w-5xl mx-auto px-4 py-4 flex justify-between items-center">
-        <div className="flex items-center gap-4">
+      <div className="max-w-5xl mx-auto px-4 py-3 flex justify-between items-center">
+        <div className="flex items-center gap-6">
           
           <button 
             onClick={onBack}
-            className="flex items-center gap-1 px-3 py-2 rounded-lg text-slate-400 hover:bg-slate-800 hover:text-white transition-colors text-sm font-medium border border-transparent hover:border-slate-700"
+            className="flex items-center gap-1 px-3 py-2 rounded-lg text-slate-400 hover:bg-slate-800 hover:text-white transition-colors text-sm font-medium border border-transparent hover:border-slate-700 h-fit"
             title="Voltar ao Início"
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -43,8 +43,6 @@ export const Header: React.FC<HeaderProps> = ({
             </svg>
             <span className="hidden sm:inline">Voltar</span>
           </button>
-
-          <div className="h-8 w-px bg-slate-800 mx-2 hidden sm:block"></div>
 
           <div className="flex items-center gap-4">
             {/* Área dos Avatares */}
@@ -64,11 +62,11 @@ export const Header: React.FC<HeaderProps> = ({
                   )}
                 </div>
               ) : (
-                // VISÃO DO ALUNO - Mostra TODOS os mentores
-                <div className="flex items-center -space-x-2 hover:space-x-2 transition-all duration-300">
+                // VISÃO DO ALUNO - Mostra TODOS os mentores lado a lado
+                <div className="flex items-center gap-4">
                   {mentors.map((mentor) => (
-                    <div key={mentor.id} className="relative group transition-transform hover:z-10 hover:scale-110 cursor-help">
-                      <div className={`w-10 h-10 rounded-full p-0.5 ${mentor.isOnline ? 'bg-gradient-to-tr from-green-500 to-emerald-500 shadow-lg shadow-green-500/20' : 'bg-slate-700 border border-slate-600'}`}>
+                    <div key={mentor.id} className="relative group flex flex-col items-center">
+                      <div className={`w-10 h-10 rounded-full p-0.5 transition-all duration-300 ${mentor.isOnline ? 'bg-gradient-to-tr from-green-500 to-emerald-500 shadow-lg shadow-green-500/20' : 'bg-slate-700 border border-slate-600'}`}>
                         <img 
                           src={mentor.photo} 
                           alt={mentor.name} 
@@ -76,16 +74,13 @@ export const Header: React.FC<HeaderProps> = ({
                         />
                       </div>
                       
-                      {/* Indicador de Status */}
-                      <span className={`absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 border-2 border-slate-900 rounded-full ${mentor.isOnline ? 'bg-green-500 animate-pulse' : 'bg-slate-500'}`}></span>
+                      {/* Indicador de Status (Bolinha) */}
+                      <span className={`absolute bottom-3.5 -right-0.5 w-3.5 h-3.5 border-2 border-slate-900 rounded-full ${mentor.isOnline ? 'bg-green-500 animate-pulse' : 'bg-slate-500'}`}></span>
                       
-                      {/* Tooltip com Nome */}
-                      <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-slate-900/95 backdrop-blur border border-slate-700 text-white text-[10px] px-2 py-1 rounded shadow-xl whitespace-nowrap pointer-events-none z-20">
-                        <span className="font-bold">{mentor.name}</span>
-                        <span className={`block text-[9px] ${mentor.isOnline ? 'text-green-400' : 'text-slate-500'}`}>
-                          {mentor.isOnline ? 'Online' : 'Offline'}
-                        </span>
-                      </div>
+                      {/* Nome do Mentor visível */}
+                      <span className={`text-[10px] font-bold mt-1 ${mentor.isOnline ? 'text-green-400' : 'text-slate-500'}`}>
+                        {mentor.name}
+                      </span>
                     </div>
                   ))}
                   
@@ -99,11 +94,13 @@ export const Header: React.FC<HeaderProps> = ({
               )}
             </div>
             
-            <div>
+            <div className="hidden md:block h-8 w-px bg-slate-800 mx-2"></div>
+
+            <div className="hidden md:block">
               <div className="flex items-center gap-2">
                 <h1 className="text-xl font-bold text-white tracking-tight">Mentoria do Muzeira</h1>
               </div>
-              <p className="text-xs text-slate-400 hidden sm:block">Fila de Atendimento</p>
+              <p className="text-xs text-slate-400">Fila de Atendimento</p>
             </div>
           </div>
         </div>
