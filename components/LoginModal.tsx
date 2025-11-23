@@ -3,11 +3,11 @@ import React, { useState } from 'react';
 interface LoginModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onLogin: (user: string, pass: string) => Promise<boolean>; // Agora é async
+  onLogin: (user: string, pass: string) => Promise<boolean>;
 }
 
 export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLogin }) => {
-  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [pass, setPass] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -20,15 +20,22 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLogin
     setIsLoading(true);
     
     try {
-      const success = await onLogin(email, pass);
+      const success = await onLogin(username, pass);
       if (success) {
-        setEmail('');
+        setUsername('');
         setPass('');
         onClose();
       }
     } catch (err: any) {
       console.error(err);
-      setError('Erro ao entrar. Verifique email e senha.');
+      // Tratamento de erros comuns do Firebase para ajudar o usuário
+      if (err.code === 'auth/invalid-credential' || err.code === 'auth/user-not-found') {
+         setError('Usuário ou senha incorretos. Verifique se você criou o usuário "admin@mentoria.com" no Firebase Authentication.');
+      } else if (err.code === 'auth/too-many-requests') {
+         setError('Muitas tentativas. Aguarde um pouco e tente novamente.');
+      } else {
+         setError('Erro ao entrar. Verifique o console para mais detalhes.');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -53,22 +60,25 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLogin
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {error && (
-            <div className="bg-red-500/10 border border-red-500/20 text-red-400 text-sm p-3 rounded-lg text-center">
+            <div className="bg-red-500/10 border border-red-500/20 text-red-400 text-xs p-3 rounded-lg">
               {error}
             </div>
           )}
           
           <div>
-            <label className="block text-sm font-medium text-slate-400 mb-1">Email</label>
+            <label className="block text-sm font-medium text-slate-400 mb-1">Usuário</label>
             <input
-              type="email"
-              value={email}
-              onChange={e => setEmail(e.target.value)}
+              type="text"
+              value={username}
+              onChange={e => setUsername(e.target.value)}
               className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2.5 text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all"
-              placeholder="admin@exemplo.com"
+              placeholder="Ex: admin"
               autoFocus
               required
             />
+             <p className="text-[10px] text-slate-500 mt-1 ml-1">
+              O sistema tentará logar como <span className="font-mono text-slate-400">{username || 'admin'}@mentoria.com</span>
+            </p>
           </div>
           
           <div>

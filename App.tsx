@@ -152,9 +152,9 @@ const App: React.FC = () => {
     }
   };
 
-  const handleLogin = async (email: string, pass: string): Promise<boolean> => {
+  const handleLogin = async (username: string, pass: string): Promise<boolean> => {
     try {
-      await queueService.loginAdmin(email, pass);
+      await queueService.loginAdmin(username, pass);
       return true;
     } catch (e) {
       throw e;
