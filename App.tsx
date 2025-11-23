@@ -42,8 +42,7 @@ const App: React.FC = () => {
   
   // Dev State
   const [devTelegramId, setDevTelegramId] = useState('');
-  const [showTelegramHelp, setShowTelegramHelp] = useState(false);
-
+  
   // Refs para controle de notificação
   const prevPendingCountRef = useRef(0);
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -61,6 +60,16 @@ const App: React.FC = () => {
   const loggedMentor = currentUserEmail === MENTORS.kayo.email 
     ? MENTORS.kayo 
     : MENTORS.muzeira;
+
+  // --- EFEITO: Carregar ID do Telegram salvo (Persistência F5) ---
+  useEffect(() => {
+    if (role === UserRole.MENTOR) {
+      // Usa uma chave única para cada mentor, assim não mistura se trocar de conta
+      const storageKey = `telegram_id_${loggedMentor.id}`;
+      const savedId = localStorage.getItem(storageKey);
+      setDevTelegramId(savedId || '');
+    }
+  }, [role, loggedMentor.id]);
 
   useEffect(() => {
     audioRef.current = new Audio(NOTIFICATION_SOUND_URL);
@@ -207,8 +216,13 @@ const App: React.FC = () => {
   // Funções da Área Dev (Config Telegram)
   const handleDevSave = async () => {
     try {
+       // Salva no LocalStorage usando a chave específica do mentor (Persistência F5)
+       const storageKey = `telegram_id_${loggedMentor.id}`;
+       localStorage.setItem(storageKey, devTelegramId);
+       
+       // Salva no Banco para o Bot saber enviar
        await queueService.registerTelegramId(devTelegramId, loggedMentor.name);
-       alert("✅ ID Salvo com sucesso!");
+       alert("✅ ID Vinculado com Sucesso! (Salvo no navegador e no servidor)");
     } catch (e: any) { alert(e.message) }
   };
 
@@ -216,7 +230,7 @@ const App: React.FC = () => {
     try {
       if(!devTelegramId) return alert("⚠️ Preencha o ID primeiro!");
       await queueService.sendTestNotification(devTelegramId);
-      alert("🚀 Comando enviado!\n\nSe não chegar em 5 segundos:\n1. Você esqueceu de dar 'Oi' pro seu Bot.\n2. O ID está errado.");
+      alert("🚀 Teste enviado! Verifique seu Telegram.");
     } catch (e: any) { alert(e.message) }
   };
 
@@ -265,6 +279,7 @@ const App: React.FC = () => {
           ) : (
             <div className="bg-slate-800 rounded-2xl p-6 border border-slate-700 shadow-lg space-y-6">
               
+              {/* Header do Card do Mentor */}
               <div className="flex flex-col items-center pb-4 border-b border-slate-700">
                 <div className="w-20 h-20 rounded-full border-2 border-indigo-500 p-1 mb-3">
                   <img src={loggedMentor.photo} alt={loggedMentor.name} className="w-full h-full rounded-full object-cover" />
@@ -273,10 +288,11 @@ const App: React.FC = () => {
                 <span className="text-xs text-slate-400 uppercase tracking-wider">{loggedMentor.id === 'kayo' ? 'Suporte Técnico' : 'Mentor Principal'}</span>
               </div>
 
+              {/* Botão de Status Online/Offline */}
               <div>
                 <button 
                   onClick={() => queueService.setMentorStatus(loggedMentor.id as any, !isCurrentMentorOnline)}
-                  className={`w-full py-3 px-4 rounded-xl font-semibold transition-all flex items-center justify-center gap-2 border mb-2 ${
+                  className={`w-full py-3 px-4 rounded-xl font-semibold transition-all flex items-center justify-center gap-2 border mb-4 ${
                     isCurrentMentorOnline 
                       ? 'bg-green-500/10 border-green-500/50 text-green-400 hover:bg-green-500/20' 
                       : 'bg-slate-700/50 border-slate-600 text-slate-400 hover:bg-slate-700'
@@ -286,6 +302,49 @@ const App: React.FC = () => {
                 </button>
               </div>
 
+              {/* --- CONFIGURAÇÃO DO TELEGRAM (NOVA POSIÇÃO) --- */}
+              <div className="p-4 bg-slate-900/80 rounded-xl border border-indigo-500/20">
+                <h3 className="text-xs font-bold text-indigo-400 uppercase mb-3 flex items-center gap-1">
+                   <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                   </svg>
+                   Notificações Telegram
+                </h3>
+                
+                <div className="flex gap-2 mb-2">
+                   <input 
+                    type="text" 
+                    placeholder="Seu Chat ID"
+                    value={devTelegramId}
+                    onChange={(e) => setDevTelegramId(e.target.value)}
+                    className="w-full bg-slate-800 border border-slate-600 rounded px-2 py-1 text-xs text-white focus:outline-none focus:border-indigo-500"
+                   />
+                   <button 
+                    onClick={handleDevSave}
+                    className="px-3 py-1 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded"
+                   >
+                     Salvar
+                   </button>
+                </div>
+
+                <div className="flex justify-between items-center px-1">
+                   <a 
+                     href="https://t.me/userinfobot" 
+                     target="_blank" 
+                     className="text-[10px] text-slate-500 hover:text-indigo-400 underline"
+                   >
+                     Não sabe seu ID?
+                   </a>
+                   <button 
+                     onClick={handleDevTest}
+                     className="text-[10px] text-green-400 hover:text-green-300 font-medium flex items-center gap-1"
+                   >
+                     Testar Envio
+                   </button>
+                </div>
+              </div>
+
+              {/* Status da Fila */}
               <div className="space-y-4 pt-2">
                 <div className="p-4 bg-slate-900 rounded-xl border border-slate-700">
                   <span className="text-slate-400 text-sm">Fila Atual</span>
@@ -293,6 +352,7 @@ const App: React.FC = () => {
                 </div>
               </div>
 
+              {/* Ações de Conta */}
               <div className="pt-2 border-t border-slate-700/50 space-y-2">
                 {loggedMentor.canClearHistory && (
                   <button 
@@ -367,76 +427,14 @@ const App: React.FC = () => {
         </div>
       </main>
 
-      {/* RODAPÉ DE CONFIGURAÇÃO - VISÍVEL APENAS PARA MENTORES */}
-      <footer className="mt-12 py-6 border-t border-slate-800 bg-slate-900/50 backdrop-blur relative">
-        {role === UserRole.MENTOR && showTelegramHelp && (
-           <div className="absolute bottom-full left-0 w-full bg-slate-900 border-t border-indigo-500/30 p-4 shadow-2xl animate-in slide-in-from-bottom-5">
-              <div className="max-w-5xl mx-auto flex flex-col md:flex-row gap-6">
-                <div className="flex-1">
-                   <h3 className="text-indigo-400 font-bold mb-2 flex items-center gap-2">
-                     <span className="bg-indigo-500 text-white w-5 h-5 rounded-full flex items-center justify-center text-xs">1</span>
-                     Falar com o Bot
-                   </h3>
-                   <p className="text-slate-400 text-xs">Abra o seu Bot no Telegram e clique em <strong>Começar (Start)</strong> ou mande um "Oi".</p>
-                </div>
-                <div className="flex-1">
-                   <h3 className="text-indigo-400 font-bold mb-2 flex items-center gap-2">
-                     <span className="bg-indigo-500 text-white w-5 h-5 rounded-full flex items-center justify-center text-xs">2</span>
-                     Pegar seu ID
-                   </h3>
-                   <p className="text-slate-400 text-xs">Mande uma mensagem para o bot <a href="https://t.me/userinfobot" target="_blank" className="text-white underline">@userinfobot</a>. Ele vai responder com um número.</p>
-                </div>
-                <div className="flex-1">
-                   <h3 className="text-indigo-400 font-bold mb-2 flex items-center gap-2">
-                     <span className="bg-indigo-500 text-white w-5 h-5 rounded-full flex items-center justify-center text-xs">3</span>
-                     Salvar e Testar
-                   </h3>
-                   <p className="text-slate-400 text-xs">Copie o número, cole no campo abaixo e clique em Salvar. Depois clique em Testar.</p>
-                </div>
-                <button onClick={() => setShowTelegramHelp(false)} className="text-slate-500 hover:text-white self-start">✖</button>
-              </div>
-           </div>
-        )}
-
-        <div className="max-w-5xl mx-auto px-4 flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-slate-500">
+      {/* RODAPÉ SIMPLIFICADO - APENAS CRÉDITOS */}
+      <footer className="mt-12 py-6 border-t border-slate-800 bg-slate-900/50 backdrop-blur">
+        <div className="max-w-5xl mx-auto px-4 flex justify-center text-xs text-slate-500">
            <div className="flex items-center gap-2">
              <span>&copy; 2024 Mentoria do Muzeira v1.1</span>
-             <span className="hidden md:inline text-slate-700">|</span>
-             <span className="hidden md:inline">Sistema de Filas</span>
+             <span className="text-slate-700">|</span>
+             <span>Sistema de Filas</span>
            </div>
-           
-           {role === UserRole.MENTOR && (
-             <div className="flex items-center gap-2 p-2 bg-slate-800 rounded-lg border border-slate-700 shadow-lg">
-               <button 
-                 onClick={() => setShowTelegramHelp(!showTelegramHelp)}
-                 className="bg-indigo-500/20 text-indigo-400 hover:bg-indigo-500 hover:text-white w-6 h-6 rounded flex items-center justify-center transition-colors font-bold"
-                 title="Como configurar?"
-               >
-                 ?
-               </button>
-               <span className="font-bold text-slate-300 hidden sm:inline">TELEGRAM:</span>
-               <input 
-                 type="text" 
-                 placeholder="Seu Chat ID" 
-                 className="bg-slate-900 border border-slate-600 rounded px-2 py-1 text-slate-300 w-28 sm:w-32 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
-                 value={devTelegramId}
-                 onChange={(e) => setDevTelegramId(e.target.value)}
-               />
-               <a href="https://t.me/userinfobot" target="_blank" className="text-[10px] text-indigo-400 hover:underline">(Pegar ID)</a>
-               <button 
-                 onClick={handleDevSave}
-                 className="px-3 py-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded transition-colors font-medium"
-               >
-                 Salvar
-               </button>
-               <button 
-                 onClick={handleDevTest}
-                 className="px-3 py-1 bg-green-600 hover:bg-green-700 text-white rounded transition-colors font-medium flex items-center gap-1"
-               >
-                 Testar
-               </button>
-             </div>
-           )}
         </div>
       </footer>
     </div>
