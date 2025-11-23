@@ -30,7 +30,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLogin
       console.error(err);
       // Tratamento de erros comuns do Firebase para ajudar o usuário
       if (err.code === 'auth/invalid-credential' || err.code === 'auth/user-not-found') {
-         setError('Usuário ou senha incorretos. Verifique se você criou o usuário "admin@mentoria.com" no Firebase Authentication.');
+         setError('Usuário ou senha incorretos. Verifique se o usuário "muzeira@mentor.com" existe no Firebase.');
       } else if (err.code === 'auth/too-many-requests') {
          setError('Muitas tentativas. Aguarde um pouco e tente novamente.');
       } else {
@@ -72,12 +72,12 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLogin
               value={username}
               onChange={e => setUsername(e.target.value)}
               className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2.5 text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all"
-              placeholder="Ex: admin"
+              placeholder="Ex: muzeira"
               autoFocus
               required
             />
              <p className="text-[10px] text-slate-500 mt-1 ml-1">
-              O sistema tentará logar como <span className="font-mono text-slate-400">{username || 'admin'}@mentoria.com</span>
+              O sistema tentará logar como <span className="font-mono text-slate-400">{username || 'muzeira'}@mentor.com</span>
             </p>
           </div>
           

@@ -47,8 +47,8 @@ export const queueService = {
   loginAdmin: async (username: string, pass: string) => {
     if (isFirebaseConfigured() && auth) {
       // Truque para permitir login só com nome de usuário
-      // Se não tiver @, adiciona o domínio fictício
-      const email = username.includes('@') ? username : `${username}@mentoria.com`;
+      // Se não tiver @, adiciona o domínio escolhido pelo usuário
+      const email = username.includes('@') ? username : `${username}@mentor.com`;
       await signInWithEmailAndPassword(auth, email, pass);
     } else {
       throw new Error("Firebase não configurado.");
