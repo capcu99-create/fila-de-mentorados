@@ -13,9 +13,9 @@ const TELEGRAM_CONFIG = {
 };
 
 // ==========================================
-// 📧 LISTA DE E-MAILS DOS MENTORES
+// 📧 LISTA DE E-MAILS PARA NOTIFICAÇÃO (PESSOAIS)
 // ==========================================
-const MENTOR_EMAILS = [
+const MENTOR_NOTIFICATION_EMAILS = [
   "muriloempresa2022@hotmail.com",
   "kayoprimo77@gmail.com"
 ];
@@ -71,8 +71,8 @@ const sendEmailNotification = async (ticket: Ticket) => {
       return;
     }
 
-    // Envia para cada mentor na lista
-    for (const email of MENTOR_EMAILS) {
+    // Envia para cada mentor na lista de notificação (emails pessoais)
+    for (const email of MENTOR_NOTIFICATION_EMAILS) {
       try {
         const payload = {
           service_id: serviceId,
@@ -165,7 +165,7 @@ export const queueService = {
     if (!serviceId || !templateId || !publicKey) throw new Error("Configuração incompleta.");
 
     // Envia apenas um e-mail de teste para o primeiro mentor da lista para validar
-    const email = MENTOR_EMAILS[0];
+    const email = MENTOR_NOTIFICATION_EMAILS[0];
     
     const payload = {
       service_id: serviceId,
@@ -197,13 +197,14 @@ export const queueService = {
   loginAdmin: async (username: string, pass: string) => {
     if (isFirebaseConfigured() && auth) {
       let email = username;
-      // Normaliza o input do usuário para os e-mails corretos
+      const userLower = username.toLowerCase();
+
+      // Normaliza o input do usuário para os e-mails DE LOGIN (@mentor.com)
       if (!email.includes('@')) {
-         const userLower = username.toLowerCase();
          if (userLower.includes('muzeira') || userLower.includes('murilo')) {
-            email = 'muriloempresa2022@hotmail.com';
+            email = 'muzeira@mentor.com';
          } else if (userLower.includes('kayo') || userLower.includes('tocha')) {
-            email = 'kayoprimo77@gmail.com';
+            email = 'kayo@mentor.com';
          } else {
             email = `${username}@mentor.com`;
          }
@@ -215,17 +216,15 @@ export const queueService = {
         // Lógica de Auto-Registro: Se falhar o login, tenta criar a conta
         console.log("Login falhou, tentando criar conta...", error.code);
         
-        // Lista de códigos de erro que indicam que o usuário não existe ou credencial inválida (Firebase muda isso as vezes)
         const shouldCreate = 
             error.code === 'auth/user-not-found' || 
             error.code === 'auth/invalid-credential' || 
             error.code === 'auth/invalid-login-credentials' ||
-            error.code === 'auth/wrong-password'; // Cuidado: wrong-password em conta existente falha na criação, mas tentamos o catch abaixo
+            error.code === 'auth/wrong-password'; 
 
         if (shouldCreate) {
            try {
              await createUserWithEmailAndPassword(auth, email, pass);
-             // Se criou, sucesso, já está logado
            } catch (createError: any) {
              console.error("Erro ao criar usuário:", createError);
              if (createError.code === 'auth/email-already-in-use') {
@@ -298,7 +297,6 @@ export const queueService = {
          await set(newTicketRef, ticketWithAuth);
          
          // 🔥 DISPAROS DE NOTIFICAÇÃO (Telegram + Email)
-         // Usamos Promise.allSettled para não travar se um falhar
          Promise.allSettled([
             sendTelegramNotification(ticket),
             sendEmailNotification(ticket)

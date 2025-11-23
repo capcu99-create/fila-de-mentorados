@@ -10,20 +10,20 @@ import { Ticket, TicketStatus, UserRole } from './types';
 import { queueService } from './services/queueService';
 
 // ============================================================================
-// 👥 PERFIS DE MENTORES
+// 👥 PERFIS DE MENTORES (LOGIN DO FIREBASE)
 // ============================================================================
 const MENTORS = {
   muzeira: {
     id: 'muzeira',
     name: 'Muzeira',
-    email: 'muriloempresa2022@hotmail.com', 
+    email: 'muzeira@mentor.com', 
     photo: "https://i.imgur.com/h32KOQd.jpeg",
     canClearHistory: true
   },
   kayo: {
     id: 'kayo',
     name: 'Tocha 🔥', 
-    email: 'kayoprimo77@gmail.com',
+    email: 'kayo@mentor.com',
     photo: "https://i.imgur.com/garicye.jpeg", 
     canClearHistory: false
   }
@@ -345,7 +345,13 @@ const App: React.FC = () => {
                   <img src={loggedMentor.photo} alt={loggedMentor.name} className="w-full h-full rounded-full object-cover" />
                 </div>
                 <h2 className="text-xl font-bold text-white">Olá, {loggedMentor.name}</h2>
-                <span className="text-xs text-slate-400 uppercase tracking-wider">{loggedMentor.id === 'kayo' ? 'Suporte Técnico' : 'Mentor Principal'}</span>
+                <span className="text-xs text-slate-400 uppercase tracking-wider mb-2 block">{loggedMentor.id === 'kayo' ? 'Suporte Técnico' : 'Mentor Principal'}</span>
+                
+                {/* --- DISPLAY DE DEBUG DO EMAIL --- */}
+                {/* Isso ajuda a confirmar se o mentor está logado com o email certo que está nas regras */}
+                <div className="bg-black/30 px-3 py-1 rounded text-[10px] text-slate-500 font-mono border border-slate-700/50 break-all max-w-full text-center">
+                  Logado: {currentUserEmail || 'Desconhecido'}
+                </div>
               </div>
 
               {/* Botão de Status Online/Offline */}

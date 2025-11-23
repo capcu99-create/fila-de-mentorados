@@ -14,18 +14,22 @@ export const RulesModal: React.FC<RulesModalProps> = ({ isOpen, onClose }) => {
     ".read": true,
     "tickets": {
       ".indexOn": ["createdAt"],
+      
+      // REGRA GERAL DA LISTA (Para Admins/Mentores)
+      // Permite limpar histórico e moderar qualquer ticket na raiz
+      // Apenas emails @mentor.com têm permissão total
+      ".write": "auth != null && auth.token.email.matches(/.*@mentor.com/)",
+      
       "$ticketId": {
-        // PERMISSÕES DE ESCRITA:
-        // 1. Criar novo ticket: Qualquer usuário autenticado (!data.exists)
-        // 2. Editar próprio ticket: Dono do ticket (createdBy == auth.uid)
-        // 3. Mentores/Admins: Emails específicos liberados
-        ".write": "auth != null && (!data.exists() || data.child('createdBy').val() === auth.uid || auth.token.email === 'muriloempresa2022@hotmail.com' || auth.token.email === 'kayoprimo77@gmail.com' || auth.token.email.matches(/.*@mentor.com/))"
+        // REGRA INDIVIDUAL (Para Alunos)
+        // Permite criar novo ou editar o próprio ticket
+        ".write": "auth != null && (!data.exists() || data.child('createdBy').val() === auth.uid)"
       }
     },
     "systemStatus": {
       ".read": true,
-      // Apenas mentores podem alterar status (Online/Offline) e configs
-      ".write": "auth != null && (auth.token.email === 'muriloempresa2022@hotmail.com' || auth.token.email === 'kayoprimo77@gmail.com' || auth.token.email.matches(/.*@mentor.com/))"
+      // Apenas mentores (@mentor.com) podem alterar status e configs
+      ".write": "auth != null && auth.token.email.matches(/.*@mentor.com/)"
     }
   }
 }`;
@@ -50,7 +54,10 @@ export const RulesModal: React.FC<RulesModalProps> = ({ isOpen, onClose }) => {
         <div className="space-y-4 overflow-y-auto pr-2">
           <div className="bg-red-500/10 border border-red-500/20 p-3 rounded-lg">
              <p className="text-red-300 text-sm font-semibold">
-               O Firebase está bloqueando as ações dos mentores (Hotmail/Gmail). Você precisa atualizar as regras de segurança.
+               O Firebase bloqueou a ação. As regras precisam permitir <code>@mentor.com</code>.
+             </p>
+             <p className="text-red-400 text-xs mt-1">
+               Copie o código abaixo para liberar o acesso total aos mentores logados.
              </p>
           </div>
 
@@ -59,7 +66,7 @@ export const RulesModal: React.FC<RulesModalProps> = ({ isOpen, onClose }) => {
           </p>
 
           <div className="relative group">
-            <pre className="bg-slate-950 p-4 rounded-lg border border-slate-800 text-green-400 text-xs font-mono overflow-x-auto shadow-inner">
+            <pre className="bg-slate-950 p-4 rounded-lg border border-slate-800 text-green-400 text-xs font-mono overflow-x-auto shadow-inner select-all">
               {rules}
             </pre>
             <button 
