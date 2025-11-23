@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { Header } from './components/Header';
 import { RequestForm } from './components/RequestForm';
@@ -199,6 +200,17 @@ const App: React.FC = () => {
     }
   };
 
+  const handleClearHistory = async () => {
+    const confirmed = window.confirm("ATENÇÃO: Isso apagará permanentemente todos os tickets Resolvidos e Descartados do histórico. Os tickets na fila de espera serão mantidos. Deseja continuar?");
+    if (confirmed) {
+      try {
+        await queueService.clearHistory();
+      } catch (error: any) {
+        handleError(error, "limpar histórico");
+      }
+    }
+  };
+
   if (!hasEntered) {
     return (
       <LandingPage 
@@ -294,12 +306,25 @@ const App: React.FC = () => {
                 </div>
               </div>
 
-              <button 
-                onClick={handleLogout}
-                className="w-full mt-2 py-2 px-4 border border-red-500/30 text-red-400 hover:bg-red-500/10 rounded-lg text-sm transition-colors"
-              >
-                Sair (Logout)
-              </button>
+              <div className="pt-2 border-t border-slate-700/50 space-y-2">
+                <button 
+                  onClick={handleClearHistory}
+                  disabled={historyTickets.length === 0}
+                  className="w-full py-2 px-4 border border-slate-600/50 text-slate-400 hover:bg-slate-700 hover:text-white rounded-lg text-sm transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                  Limpar Histórico
+                </button>
+
+                <button 
+                  onClick={handleLogout}
+                  className="w-full py-2 px-4 border border-red-500/30 text-red-400 hover:bg-red-500/10 rounded-lg text-sm transition-colors"
+                >
+                  Sair (Logout)
+                </button>
+              </div>
             </div>
           )}
         </div>

@@ -1,6 +1,6 @@
 
 import { initializeApp } from 'firebase/app';
-import { getDatabase, ref, onValue, push, set, update, remove } from 'firebase/database';
+import { getDatabase, ref, onValue, push, set, update, remove, get } from 'firebase/database';
 import { getAuth, signInAnonymously, signInWithEmailAndPassword, signOut, onAuthStateChanged, User } from 'firebase/auth';
 import { firebaseConfig, isFirebaseConfigured } from '../firebaseConfig';
 import { Ticket } from '../types';
@@ -161,6 +161,44 @@ export const queueService = {
       if (saved) {
         const tickets = JSON.parse(saved) as Ticket[];
         const newTickets = tickets.map(t => t.id === id ? { ...t, ...updates } : t);
+        localStorage.setItem('muzeira-tickets', JSON.stringify(newTickets));
+        window.dispatchEvent(new Event('local-storage-update'));
+      }
+    }
+  },
+
+  clearHistory: async () => {
+    if (isFirebaseConfigured() && ticketsRef && db) {
+      try {
+        const snapshot = await get(ticketsRef);
+        if (snapshot.exists()) {
+          const data = snapshot.val();
+          const updates: any = {};
+          let count = 0;
+
+          Object.keys(data).forEach((key) => {
+            const ticket = data[key];
+            // Apaga se NÃO for PENDING (apaga Resolved e Discarded)
+            if (ticket.status !== 'PENDING') {
+              updates[`tickets/${key}`] = null;
+              count++;
+            }
+          });
+
+          if (count > 0) {
+            await update(ref(db), updates);
+          }
+        }
+      } catch (error) {
+        console.error("Erro ao limpar histórico:", error);
+        throw error;
+      }
+    } else {
+      // Local Storage Fallback
+      const saved = localStorage.getItem('muzeira-tickets');
+      if (saved) {
+        const tickets = JSON.parse(saved) as Ticket[];
+        const newTickets = tickets.filter(t => t.status === 'PENDING');
         localStorage.setItem('muzeira-tickets', JSON.stringify(newTickets));
         window.dispatchEvent(new Event('local-storage-update'));
       }
