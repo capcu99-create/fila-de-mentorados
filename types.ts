@@ -1,0 +1,28 @@
+
+export enum TicketStatus {
+  PENDING = 'PENDING',
+  IN_PROGRESS = 'IN_PROGRESS',
+  RESOLVED = 'RESOLVED',
+  DISCARDED = 'DISCARDED',
+}
+
+export interface AITags {
+  summary: string;
+  tags: string[];
+  complexity: string;
+}
+
+export interface Ticket {
+  id: string;
+  studentName: string;
+  reason: string;
+  availability: string;
+  status: TicketStatus;
+  createdAt: number;
+  aiData?: AITags;
+}
+
+export enum UserRole {
+  STUDENT = 'STUDENT',
+  MENTOR = 'MENTOR',
+}

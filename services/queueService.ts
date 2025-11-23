@@ -1,0 +1,136 @@
+import { initializeApp } from 'firebase/app';
+import { getDatabase, ref, onValue, push, update, set, remove } from 'firebase/database';
+import { firebaseConfig, isFirebaseConfigured } from '../firebaseConfig';
+import { Ticket } from '../types';
+
+// --- FIREBASE SETUP ---
+let db: any = null;
+let ticketsRef: any = null;
+let statusRef: any = null;
+
+if (isFirebaseConfigured()) {
+  try {
+    const app = initializeApp(firebaseConfig);
+    db = getDatabase(app);
+    ticketsRef = ref(db, 'tickets');
+    statusRef = ref(db, 'systemStatus/mentorOnline');
+    console.log("Firebase conectado com sucesso.");
+  } catch (e) {
+    console.error("Erro ao conectar Firebase:", e);
+  }
+}
+
+// --- INTERFACE DO SERVIÇO ---
+
+export const queueService = {
+  isSystemOnline: () => isFirebaseConfigured(),
+
+  // --- TICKETS ---
+
+  // Inscrever para receber atualizações em tempo real
+  subscribe: (callback: (tickets: Ticket[]) => void) => {
+    if (isFirebaseConfigured() && ticketsRef) {
+      // MODO ONLINE: Escuta o Firebase
+      const unsubscribe = onValue(ticketsRef, (snapshot) => {
+        const data = snapshot.val();
+        if (data) {
+          const ticketList = Object.keys(data).map(key => ({
+            ...data[key],
+            id: key 
+          }));
+          ticketList.sort((a, b) => b.createdAt - a.createdAt);
+          callback(ticketList);
+        } else {
+          callback([]);
+        }
+      });
+      return unsubscribe;
+    } else {
+      // MODO OFFLINE: Lê do LocalStorage
+      const loadLocal = () => {
+        const saved = localStorage.getItem('muzeira-tickets');
+        if (saved) {
+          try {
+            callback(JSON.parse(saved));
+          } catch (e) {
+            callback([]);
+          }
+        } else {
+          callback([]);
+        }
+      };
+      
+      loadLocal();
+      return () => {};
+    }
+  },
+
+  // Adicionar novo ticket
+  addTicket: async (ticket: Ticket): Promise<string | null> => {
+    if (isFirebaseConfigured() && ticketsRef) {
+      // MODO ONLINE
+      const newTicketRef = push(ticketsRef);
+      const newId = newTicketRef.key;
+      if (newId) {
+         await set(newTicketRef, { ...ticket, id: newId });
+         return newId;
+      }
+      return null;
+    } else {
+      // MODO OFFLINE
+      const saved = localStorage.getItem('muzeira-tickets');
+      const currentTickets = saved ? JSON.parse(saved) : [];
+      const newTickets = [ticket, ...currentTickets];
+      localStorage.setItem('muzeira-tickets', JSON.stringify(newTickets));
+      window.dispatchEvent(new Event('local-storage-update'));
+      return ticket.id;
+    }
+  },
+
+  // Atualizar ticket existente
+  updateTicket: async (id: string, updates: Partial<Ticket>) => {
+    if (isFirebaseConfigured() && db) {
+      // MODO ONLINE
+      const ticketRef = ref(db, `tickets/${id}`);
+      await update(ticketRef, updates);
+    } else {
+      // MODO OFFLINE
+      const saved = localStorage.getItem('muzeira-tickets');
+      if (saved) {
+        const tickets = JSON.parse(saved) as Ticket[];
+        const newTickets = tickets.map(t => t.id === id ? { ...t, ...updates } : t);
+        localStorage.setItem('muzeira-tickets', JSON.stringify(newTickets));
+        window.dispatchEvent(new Event('local-storage-update'));
+      }
+    }
+  },
+
+  // --- MENTOR STATUS (ONLINE/OFFLINE BUTTON) ---
+
+  subscribeToMentorStatus: (callback: (isOnline: boolean) => void) => {
+    if (isFirebaseConfigured() && statusRef) {
+      const unsubscribe = onValue(statusRef, (snapshot) => {
+        const val = snapshot.val();
+        callback(!!val); // converte para boolean
+      });
+      return unsubscribe;
+    } else {
+      // Offline fallback
+      const loadStatus = () => {
+        const saved = localStorage.getItem('muzeira-mentor-status');
+        callback(saved === 'true');
+      };
+      loadStatus();
+      return () => {};
+    }
+  },
+
+  setMentorStatus: async (isOnline: boolean) => {
+    if (isFirebaseConfigured() && statusRef) {
+      await set(statusRef, isOnline);
+    } else {
+      localStorage.setItem('muzeira-mentor-status', String(isOnline));
+      window.dispatchEvent(new Event('local-status-update'));
+    }
+  }
+};

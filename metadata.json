@@ -1,0 +1,5 @@
+{
+  "name": "Mentoria do Muzeira - Fila de Atendimento",
+  "description": "Sistema de fila de atendimento para mentoria com análise inteligente de solicitações usando Gemini AI.",
+  "requestFramePermissions": []
+}
