@@ -81,26 +81,38 @@ const sendEmailNotification = async (ticket: Ticket) => {
           template_params: {
             to_email: email, // Variável interna do EmailJS
             to_name: "Mentor",
+            reply_to: ticket.studentName, // Garante que o reply vá com o nome
             
             // --- NOME (TODAS AS VARIAÇÕES POSSÍVEIS) ---
-            from_name: ticket.studentName,  // Padrão comum do EmailJS
-            student_name: ticket.studentName, // Seu template
-            studentName: ticket.studentName, // CamelCase
-            name: ticket.studentName,      // Genérico
+            // O EmailJS é chato com nomes de variáveis. Enviando todas as comuns.
+            from_name: ticket.studentName,  
+            student_name: ticket.studentName, 
+            studentName: ticket.studentName,
+            name: ticket.studentName,      
+            user_name: ticket.studentName,
+            nome: ticket.studentName,
+            aluno: ticket.studentName,
+            person_name: ticket.studentName,
             
-            // --- CONTEÚDO (INGLÊS - CONFIRMADO PELO USUÁRIO) ---
+            // --- CONTEÚDO ---
             message: ticket.reason,
             reason: ticket.reason,
+            mensagem: ticket.reason,
+            assunto: ticket.reason,
+            
+            // --- DATA/HORA ---
             availability: ticket.availability,
             time: ticket.availability,
-            date: new Date().toLocaleString('pt-BR'),
-
-            // --- FALLBACKS (CASO AINDA ESTEJA EM PT NO TEMPLATE) ---
-            mensagem: ticket.reason,
             disponibilidade: ticket.availability,
-            aluno: ticket.studentName
+            horario: ticket.availability,
+            
+            date: new Date().toLocaleString('pt-BR'),
+            data: new Date().toLocaleString('pt-BR')
           }
         };
+
+        // Debug para verificar o que está saindo (F12 no navegador)
+        console.log("📨 Enviando EmailJS Payload:", JSON.stringify(payload.template_params, null, 2));
 
         await fetch('https://api.emailjs.com/api/v1.0/email/send', {
           method: 'POST',
@@ -190,24 +202,32 @@ export const queueService = {
           template_params: {
             to_email: email,
             to_name: "Mentor (Teste)",
+            reply_to: "Teste de Sistema",
             
             // --- NOME (TODAS AS VARIAÇÕES POSSÍVEIS) ---
             from_name: "Teste de Sistema",
             student_name: "Teste de Sistema",
             studentName: "Teste de Sistema",
             name: "Teste de Sistema",
+            user_name: "Teste de Sistema",
+            nome: "Teste de Sistema",
+            aluno: "Teste de Sistema",
+            person_name: "Teste de Sistema",
             
-            // --- CONTEÚDO (INGLÊS) ---
+            // --- CONTEÚDO ---
             message: "Este é um e-mail de verificação de configuração.",
             reason: "Teste de funcionamento",
+            mensagem: "Este é um e-mail de verificação de configuração.",
+            assunto: "Teste de funcionamento",
+            
+            // --- DATA/HORA ---
             availability: "Agora",
             time: "Agora",
-            date: new Date().toLocaleString('pt-BR'),
-
-            // --- FALLBACKS PT ---
-            mensagem: "Este é um e-mail de verificação de configuração.",
             disponibilidade: "Agora",
-            aluno: "Teste de Sistema"
+            horario: "Agora",
+            
+            date: new Date().toLocaleString('pt-BR'),
+            data: new Date().toLocaleString('pt-BR')
           }
         };
 
