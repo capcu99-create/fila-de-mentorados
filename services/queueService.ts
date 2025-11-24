@@ -81,10 +81,15 @@ const sendEmailNotification = async (ticket: Ticket) => {
           template_params: {
             to_email: email, // Variável que deve existir no template do EmailJS
             to_name: "Mentor",
+            
+            // ENVIA O NOME EM VÁRIAS CHAVES PARA GARANTIR COMPATIBILIDADE COM O TEMPLATE
             student_name: ticket.studentName,
+            from_name: ticket.studentName, // Variável padrão comum no EmailJS
+            name: ticket.studentName,      // Outra variação comum
+
             message: ticket.reason,
             availability: ticket.availability,
-            date: new Date().toLocaleString('pt-BR') // Adicionado data formatada
+            date: new Date().toLocaleString('pt-BR')
           }
         };
 
@@ -176,7 +181,12 @@ export const queueService = {
           template_params: {
             to_email: email,
             to_name: "Mentor (Teste)",
+            
+            // Variações para garantir o teste
             student_name: "Teste de Sistema",
+            from_name: "Teste de Sistema",
+            name: "Teste de Sistema",
+
             message: "Este é um e-mail de verificação de configuração.",
             availability: "Agora",
             date: new Date().toLocaleString('pt-BR')
