@@ -81,38 +81,41 @@ const sendEmailNotification = async (ticket: Ticket) => {
           template_params: {
             to_email: email, // Variável interna do EmailJS
             to_name: "Mentor",
-            reply_to: ticket.studentName, // Garante que o reply vá com o nome
+            reply_to: ticket.studentName, 
+
+            // --- ESTRATÉGIA "ENVIO TOTAL" (Blindagem contra erros de tradução) ---
             
-            // --- NOME (TODAS AS VARIAÇÕES POSSÍVEIS) ---
-            // O EmailJS é chato com nomes de variáveis. Enviando todas as comuns.
-            from_name: ticket.studentName,  
-            student_name: ticket.studentName, 
-            studentName: ticket.studentName,
-            name: ticket.studentName,      
-            user_name: ticket.studentName,
+            // 1. Variáveis para "De Nome" {{name}}
+            name: ticket.studentName,
+            Name: ticket.studentName,
             nome: ticket.studentName,
+            
+            // 2. Variáveis para Corpo "ALUNO" {{student_name}}
+            student_name: ticket.studentName,
+            studentName: ticket.studentName,
+            nome_do_aluno: ticket.studentName,
             aluno: ticket.studentName,
-            person_name: ticket.studentName,
-            
-            // --- CONTEÚDO ---
-            message: ticket.reason,
+
+            // 3. Variáveis para Assunto e Corpo {{message}} / {{mensagem}} / {{title}}
+            title: ticket.reason,     // Para o Subject: Contact Us: {{title}}
+            message: ticket.reason,   // Para o Header: Assunto:{{message}}
+            mensagem: ticket.reason,  // Para o Corpo: ASSUNTO {{mensagem}}
             reason: ticket.reason,
-            mensagem: ticket.reason,
             assunto: ticket.reason,
-            
-            // --- DATA/HORA ---
+
+            // 4. Variáveis para Horário {{availability}} / {{disponibilidade}}
             availability: ticket.availability,
-            time: ticket.availability,
             disponibilidade: ticket.availability,
             horario: ticket.availability,
             
+            // 5. Variáveis para Data {{date}} / {{data}}
             date: new Date().toLocaleString('pt-BR'),
             data: new Date().toLocaleString('pt-BR')
           }
         };
 
         // Debug para verificar o que está saindo (F12 no navegador)
-        console.log("📨 Enviando EmailJS Payload:", JSON.stringify(payload.template_params, null, 2));
+        console.log("📨 Enviando EmailJS Payload:", payload.template_params);
 
         await fetch('https://api.emailjs.com/api/v1.0/email/send', {
           method: 'POST',
@@ -193,7 +196,7 @@ export const queueService = {
     let successCount = 0;
     const errors: string[] = [];
 
-    // Envia para TODOS os mentores da lista para garantir que quem estiver testando receba
+    // Envia para TODOS os mentores da lista
     for (const email of MENTOR_NOTIFICATION_EMAILS) {
         const payload = {
           service_id: serviceId,
@@ -202,27 +205,25 @@ export const queueService = {
           template_params: {
             to_email: email,
             to_name: "Mentor (Teste)",
-            reply_to: "Teste de Sistema",
+            reply_to: "Sistema de Teste",
             
-            // --- NOME (TODAS AS VARIAÇÕES POSSÍVEIS) ---
-            from_name: "Teste de Sistema",
+            // --- ENVIO TOTAL TAMBÉM NO TESTE ---
+            name: "Teste de Sistema",
+            Name: "Teste de Sistema",
+            nome: "Teste de Sistema",
+
             student_name: "Teste de Sistema",
             studentName: "Teste de Sistema",
-            name: "Teste de Sistema",
-            user_name: "Teste de Sistema",
-            nome: "Teste de Sistema",
+            nome_do_aluno: "Teste de Sistema",
             aluno: "Teste de Sistema",
-            person_name: "Teste de Sistema",
-            
-            // --- CONTEÚDO ---
-            message: "Este é um e-mail de verificação de configuração.",
-            reason: "Teste de funcionamento",
-            mensagem: "Este é um e-mail de verificação de configuração.",
-            assunto: "Teste de funcionamento",
-            
-            // --- DATA/HORA ---
+
+            title: "Teste de Funcionamento",
+            message: "Este é um e-mail de verificação.",
+            mensagem: "Este é um e-mail de verificação.",
+            reason: "Teste",
+            assunto: "Teste",
+
             availability: "Agora",
-            time: "Agora",
             disponibilidade: "Agora",
             horario: "Agora",
             
@@ -240,7 +241,6 @@ export const queueService = {
 
           if (!response.ok) {
              const errorText = await response.text();
-             // Inclui os IDs usados na mensagem de erro para facilitar o debug
              throw new Error(`${response.status} ${response.statusText} - ${errorText} \n[Conf: ${serviceId} | ${templateId}]`);
           }
           
