@@ -83,9 +83,12 @@ const sendEmailNotification = async (ticket: Ticket) => {
             to_name: "Mentor",
             
             // ENVIA O NOME EM VÁRIAS CHAVES PARA GARANTIR COMPATIBILIDADE COM O TEMPLATE
-            student_name: ticket.studentName,
-            from_name: ticket.studentName, // Variável padrão comum no EmailJS
-            name: ticket.studentName,      // Outra variação comum
+            student_name: ticket.studentName, // Padrão snake_case
+            studentName: ticket.studentName,  // Padrão camelCase
+            StudentName: ticket.studentName,  // Padrão PascalCase
+            aluno: ticket.studentName,        // Português
+            from_name: ticket.studentName,    // Padrão EmailJS
+            name: ticket.studentName,         // Genérico
 
             message: ticket.reason,
             availability: ticket.availability,
@@ -184,6 +187,9 @@ export const queueService = {
             
             // Variações para garantir o teste
             student_name: "Teste de Sistema",
+            studentName: "Teste de Sistema",
+            StudentName: "Teste de Sistema",
+            aluno: "Teste de Sistema",
             from_name: "Teste de Sistema",
             name: "Teste de Sistema",
 
