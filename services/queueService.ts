@@ -79,20 +79,26 @@ const sendEmailNotification = async (ticket: Ticket) => {
           template_id: templateId,
           user_id: publicKey,
           template_params: {
-            to_email: email, // Variável que deve existir no template do EmailJS
+            to_email: email, // Variável interna do EmailJS
             to_name: "Mentor",
             
-            // ENVIA O NOME EM VÁRIAS CHAVES PARA GARANTIR COMPATIBILIDADE COM O TEMPLATE
-            student_name: ticket.studentName, // Padrão snake_case
-            studentName: ticket.studentName,  // Padrão camelCase
-            StudentName: ticket.studentName,  // Padrão PascalCase
-            aluno: ticket.studentName,        // Português
-            from_name: ticket.studentName,    // Padrão EmailJS
-            name: ticket.studentName,         // Genérico
-
+            // --- NOME (TODAS AS VARIAÇÕES POSSÍVEIS) ---
+            from_name: ticket.studentName,  // Padrão comum do EmailJS
+            student_name: ticket.studentName, // Seu template
+            studentName: ticket.studentName, // CamelCase
+            name: ticket.studentName,      // Genérico
+            
+            // --- CONTEÚDO (INGLÊS - CONFIRMADO PELO USUÁRIO) ---
             message: ticket.reason,
+            reason: ticket.reason,
             availability: ticket.availability,
-            date: new Date().toLocaleString('pt-BR')
+            time: ticket.availability,
+            date: new Date().toLocaleString('pt-BR'),
+
+            // --- FALLBACKS (CASO AINDA ESTEJA EM PT NO TEMPLATE) ---
+            mensagem: ticket.reason,
+            disponibilidade: ticket.availability,
+            aluno: ticket.studentName
           }
         };
 
@@ -185,17 +191,23 @@ export const queueService = {
             to_email: email,
             to_name: "Mentor (Teste)",
             
-            // Variações para garantir o teste
+            // --- NOME (TODAS AS VARIAÇÕES POSSÍVEIS) ---
+            from_name: "Teste de Sistema",
             student_name: "Teste de Sistema",
             studentName: "Teste de Sistema",
-            StudentName: "Teste de Sistema",
-            aluno: "Teste de Sistema",
-            from_name: "Teste de Sistema",
             name: "Teste de Sistema",
-
+            
+            // --- CONTEÚDO (INGLÊS) ---
             message: "Este é um e-mail de verificação de configuração.",
+            reason: "Teste de funcionamento",
             availability: "Agora",
-            date: new Date().toLocaleString('pt-BR')
+            time: "Agora",
+            date: new Date().toLocaleString('pt-BR'),
+
+            // --- FALLBACKS PT ---
+            mensagem: "Este é um e-mail de verificação de configuração.",
+            disponibilidade: "Agora",
+            aluno: "Teste de Sistema"
           }
         };
 
